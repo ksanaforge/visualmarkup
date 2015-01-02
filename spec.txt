@@ -1,0 +1,4 @@
+text navigator
+predefined tagset
+workspace
+auxiliary

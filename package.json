@@ -1,0 +1,25 @@
+{
+  "name": "visualmarkup",
+  "description": "New Ksana application",
+  "version": "0.0.1",
+  "main": "index.html",
+  "inject-js-start": "nwmain.js",
+  "single-instance":true,
+  "window": {
+    "toolbar": true,
+    "width": 1060,
+    "height": 700
+  },
+  "scripts" : {
+    "watch":"watchify -t reactify index.js  -o bundle.js -dv --bare ",
+    "build":"browserify -t reactify index.js -o bundle.js -dv --bare ",
+    "start": "npm run nw && npm run watch",
+    "nw":"start node ..\\node_modules\\nodewebkit\\bin\\nodewebkit . --remote-debugging-port=9222 "
+  },
+ "repositories": [
+  {
+      "type": "git", 
+      "url": "https://yapcheahshen@github.com/ksanaforge/visualmarkup"
+  }  
+  ]
+}
