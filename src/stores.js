@@ -66,4 +66,39 @@ var store_ds=Reflux.createStore({
 	}
 });
 
-module.exports={ds:store_ds,dsl:store_dsl,kepan:store_kepan};
+var matchEntries=function(entries,tofind) {
+	var res=[];
+	for (var i=1;i<tofind.length;i++) {
+		var sub=tofind.substr(0,i);
+		var idx=kde.bsearch(entries,sub);
+		if (entries[idx]==sub) {
+			res.unshift(idx);
+		}
+	}
+	return res;
+}
+var fetchDef=function(db,segids,cb,context) {
+	var paths=[];
+	for (var i=0;i<segids.length;i++) {
+		var fileseg=db.absSegToFileSeg(segids[i]);
+		paths.push(["filecontents",fileseg.file,fileseg.seg+1]);
+	}
+	db.get(paths,function(data){
+		cb.apply(context,[data]);
+	});
+}
+var store_dictionary=Reflux.createStore({
+	listenables: [require("./actions")],
+	onSearchDictionary:function(tofind) {
+		kde.open("moedict",function(err,db){
+			var entries=db.get("segnames");
+			var segids=matchEntries(entries,tofind);
+			fetchDef(db,segids,function(data){
+				this.trigger(data,db);
+			},this); 
+			
+		},this);
+	}
+});
+
+module.exports={ds:store_ds,dsl:store_dsl,kepan:store_kepan,dictionary:store_dictionary};
