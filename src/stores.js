@@ -1,26 +1,27 @@
 
 var kde=require("ksana-database");
 var Reflux=require("reflux");
-
-
+var preloadfields=[["fields"],["extra"]];
 
 var store_dsl=Reflux.createStore({
 	listenables: [require("./actions")],
-	onOpenDSL:function(){
-		kde.open("dsl_jwn",{preload:[["fields"]]},function(err,db){
-			if (!err) {
-				console.log(db.get("fields"));
-				this.trigger(db);
+	onGetLectureTextByKepanId:function(kepanid) {
+		kde.open("dsl_jwn",{preload:preloadfields},function(err,db){
+			var N=db.get(["fields","kw","n"]);
+			var vpos=db.get(["fields","kw","vpos"]);
+			var n=N.indexOf(kepanid.toString());
+			if (n!=-1){
+				var fileseg=db.getFileSegByVpos(vpos[n]);
+				db.get(["filecontents",fileseg.file,fileseg.seg+2],function(data){
+					this.trigger(data,db);
+				},this);
 			}
-		},this);
+		},this);		
 	}
 });
 
-var store_ds=Reflux.createStore({
+var store_kepan=Reflux.createStore({
 	listenables: [require("./actions")],
-	onGoSutra:function() {
-		console.log("gosutra")
-	},
 	parseKepan:function(kepan) { //leading number is depth
 		var depths=[],texts=[];
 		for (var i=0;i<kepan.length;i++) {
@@ -38,18 +39,30 @@ var store_ds=Reflux.createStore({
 		kepan.vpos=fields.kw_jwn.vpos;
 		return kepan;
 	},
-	onOpenDS:function(){
-		kde.open("ds",{preload:[["fields"],["extra"]]},function(err,db){
-			if (!err) {
-				var kepan=this.prepareKepan(db);
-				this.trigger(db,kepan);
-			}
+	onGetKepan:function(){
+		kde.open("ds",{preload:preloadfields},function(err,db){
+			var kepan=this.prepareKepan(db);
+			this.trigger(kepan,db);
 		},this);
 	},
 
-	onGoLecture:function() {
-		console.log("golecture")
+});
+
+var store_ds=Reflux.createStore({
+	listenables: [require("./actions")],
+	onGetSutraTextByKepanId:function(kepanid) {
+		kde.open("ds",{preload:preloadfields},function(err,db){
+			var N=db.get(["fields","kw_jwn","n"]);
+			var vpos=db.get(["fields","kw_jwn","vpos"]);
+			var n=N.indexOf(kepanid.toString());
+			if (n!=-1){
+				var fileseg=db.getFileSegByVpos(vpos[n]);
+				db.get(["filecontents",fileseg.file,fileseg.seg+2],function(data){
+					this.trigger(data,db);
+				},this);
+			}
+		},this);		
 	}
 });
 
-module.exports={ds:store_ds,dsl:store_dsl};
+module.exports={ds:store_ds,dsl:store_dsl,kepan:store_kepan};

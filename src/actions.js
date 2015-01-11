@@ -1,6 +1,7 @@
 module.exports=require("reflux").createActions([
-		"openDS",
+		"getKepan",
 		"openDSL",
-		"goSutra",      //切換原文
-		"goLecture"      //切換講義
+		"openDS",
+		"getSutraTextByKepanId",      //切換原文
+		"getLectureTextByKepanId"      //切換講義
     ]);

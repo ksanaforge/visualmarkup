@@ -16,7 +16,8 @@ var maincomponent = React.createClass({
 		actions.openDSL();
 	},
 	showText:function(n) {
-		console.log(n)
+		actions.getSutraTextByKepanId(n);
+		actions.getLectureTextByKepanId(n);
 	},
 	render: function() {
 		return <div>
