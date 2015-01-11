@@ -12,6 +12,6 @@ module.exports=React.createClass({
 		if (this.state.db!=db) this.setState({db:db});
 	}, 
 	render:function() {
-		return <div className="lecturetext">{this.state.text}</div>
+		return <div className="lecturetext" dangerouslySetInnerHTML={{__html:this.state.text}}></div>
 	}
 })

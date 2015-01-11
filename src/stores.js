@@ -1,5 +1,6 @@
 
 var kde=require("ksana-database");
+var kse=require("ksana-search");
 var Reflux=require("reflux");
 var preloadfields=[["fields"],["extra"]];
 
@@ -12,8 +13,8 @@ var store_dsl=Reflux.createStore({
 			var n=N.indexOf(kepanid.toString());
 			if (n!=-1){
 				var fileseg=db.getFileSegByVpos(vpos[n]);
-				db.get(["filecontents",fileseg.file,fileseg.seg+2],function(data){
-					this.trigger(data,db);
+				kse.highlightSeg(db,fileseg.file,fileseg.seg+2,{q:" ",span:true},function(data){
+					this.trigger(data.text,db);
 				},this);
 			}
 		},this);		
