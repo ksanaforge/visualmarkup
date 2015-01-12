@@ -5,31 +5,39 @@ var MarkupText=require("./markuptext");
 var MarkupPanel=require("./markuppanel");
 var DictionaryPanel=require("./dictionarypanel");
 var KepanPanel=require("./kepanpanel");
-
+var Reflux=require("reflux");
+var store=require("./stores").ds;
 var actions=require("./actions");
 var maincomponent = React.createClass({
 	getInitialState:function() {
-		return {data:""} 
+		var kepanid=parseInt(localStorage.getItem("visualmarkup.kepanid")||"1");
+		return {data:"",kepanid:kepanid} 
+	},
+	mixins:[Reflux.listenTo(store,"onReady")],
+	onReady:function(text,db) {
+		//
 	},
 	componentDidMount:function() { 
-		actions.openDS();
-		actions.openDSL();
+		actions.getSutraTextByKepanId(this.state.kepanid);
+		actions.getLectureTextByKepanId(this.state.kepanid);
 	},
 	showText:function(n) {
 		actions.getSutraTextByKepanId(n);
 		actions.getLectureTextByKepanId(n);
+		localStorage.setItem("visualmarkup.kepanid",n);
+		this.setState({kepanid:n});
 	},
 	render: function() {
 		return <div>
-			<div className="col-md-3">
+			<div className="tocpanel col-md-3">
 				<KepanPanel showText={this.showText}/>
 			</div>
-			<div className="col-md-6">
+			<div className="textpanel col-md-6">
 				<MarkupPanel/>
 				<ReferText/>
 				<MarkupText/>
 			</div>
-			<div className="col-md-3">
+			<div className="dictpanel col-md-3">
 				<DictionaryPanel/>
 			</div>
 

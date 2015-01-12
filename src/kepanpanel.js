@@ -14,7 +14,7 @@ module.exports=React.createClass({
 	},	
 	mixins:[Reflux.listenTo(store,"onData")],
 	onData:function(kepan,db){
-		var toc=stacktoc.genToc(kepan,"金剛經講記");
+		var toc=stacktoc.genToc(kepan,"金剛經講義");
 		this.setState({db:db,toc:toc});
 	},
 	render:function(){

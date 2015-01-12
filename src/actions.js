@@ -4,5 +4,11 @@ module.exports=require("reflux").createActions([
 		"openDS",
 		"getSutraTextByKepanId",     
 		"getLectureTextByKepanId",
-		"searchDictionary" 
-    ]);
+		"getSutraTextBySeg",
+		"getLectureTextBySeg",
+		"searchDictionary" ,
+		"nextSutraPara",
+		"prevSutraPara",
+		"nextLecturePara",
+		"prevLecturePara"
+]);

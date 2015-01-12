@@ -3,3 +3,6 @@
 .kepanview  {font-size:150%;}
 .dictview {font-size:150%;}
 .tocitem {font-size:100%;}
+.tocpanel {overflow-y:auto;height:100%;}
+.textpanel {overflow-y:auto;height:100%;}
+.dictpanel {overflow-y:auto;height:100%;}
