@@ -1,5 +1,5 @@
 var Reflux=require("reflux");
-var store=require("./stores").dictionary;
+var store=require("./store_text").dictionary;
 module.exports=React.createClass({
 	mixins:[Reflux.listenTo(store,"onData")],
 	getInitialState:function() {

@@ -1,13 +1,14 @@
 var Kse=require("ksana-search");
  
-var ReferText=require("./refertext");
-var MarkupText=require("./markuptext");
+var SutraText=require("./sutratext");
+var LectureText=require("./lecturetext");
 var MarkupPanel=require("./markuppanel");
 var DictionaryPanel=require("./dictionarypanel");
 var KepanPanel=require("./kepanpanel");
 var Reflux=require("reflux");
-var store=require("./stores").ds;
-var actions=require("./actions");
+var store=require("./store_text").ds;
+var actions=require("./action_text");
+var Markuplayer=require("./markuplayer");
 var maincomponent = React.createClass({
 	getInitialState:function() {
 		var kepanid=parseInt(localStorage.getItem("visualmarkup.kepanid")||"1");
@@ -34,8 +35,9 @@ var maincomponent = React.createClass({
 			</div>
 			<div className="textpanel col-md-6">
 				<MarkupPanel/>
-				<ReferText/>
-				<MarkupText/>
+				<SutraText/>
+				<LectureText/>
+				<Markuplayer/>
 			</div>
 			<div className="dictpanel col-md-3">
 				<DictionaryPanel/>

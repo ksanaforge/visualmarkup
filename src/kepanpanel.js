@@ -1,6 +1,6 @@
 var Reflux=require("reflux");
-var store=require("./stores").kepan;
-var actions=require("./actions");
+var store=require("./store_text").kepan;
+var actions=require("./action_text");
 var stacktoc=require("ksana2015-stacktoc");
 var StackToc=stacktoc.component; //react 0.12 component name first character has to beuppercase
 

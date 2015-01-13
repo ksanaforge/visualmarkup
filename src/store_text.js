@@ -3,7 +3,7 @@ var kde=require("ksana-database");
 var kse=require("ksana-search");
 var Reflux=require("reflux");
 var preloadfields=[["fields"],["extra"]];
-var actions=require("./actions");
+var actions=require("./action_text");
 
 var kepanIdToFileSeg=function(db,kepanid,fieldname) {
 	var N=db.get(["fields",fieldname||"kw","n"]);
@@ -121,7 +121,6 @@ var store_ds=Reflux.createStore({
 		this.currentseg=seg;
 		var fileseg=this.db.absSegToFileSeg(seg);
 		var kepanid=segToKepanId(this.db,seg,"kw_jwn");
-		console.log("getting kepan",kepanid)
 		if (kepanid!=this.kepanId && this.kepanid) {			
 			actions.getLectureTextByKepanId(kepanid);
 			if (synckepan) actions.goKepanId(parseInt(kepanid)) ; //this is not good, assuming kepanid start from 1

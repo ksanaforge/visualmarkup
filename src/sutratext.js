@@ -1,7 +1,8 @@
 var Reflux=require("reflux");
-var store=require("./stores").ds;
-var actions=require("./actions");
-
+var store=require("./store_text").ds;
+var actions=require("./action_text");
+var domhelper=require("./domhelper");
+var Markuptable=require("./markuptable");
 var Controls=React.createClass({
 	nextpara:function() {
 		actions.nextSutraPara();
@@ -21,23 +22,8 @@ var Refertext=React.createClass({
 	getInitialState:function() {
 		return {text:"",db:null};
 	},
-	getTextUntilPunc:function(ele) {
-		var tofind="";
-		if (ele.nodeName!="SPAN")return;
-		while (ele) {
-			if (ele.nodeName=="SPAN") {
-				var text=ele.innerHTML;
-				var ic=text.charCodeAt(0);
-				if ((ic>=0x3F00 && ic<=0x9FFF) || (ic>=0xD800 && ic<=0xDFFF)) {
-					tofind+=text;
-					ele=ele.nextSibling;
-				} else break;
-			} else break;
-		}
-		return tofind;		
-	},
 	spanClicked:function(e) {
-		tofind=this.getTextUntilPunc(e.target);
+		tofind=domhelper.getTextUntilPunc(e.target);
 		actions.searchDictionary(tofind);
 	},
 	sutratext:function(text,db){
@@ -46,10 +32,10 @@ var Refertext=React.createClass({
 	}, 
 	render:function() {
 		return <div><Controls/>
-				<div onClick={this.spanClicked}
-		        className="sutratext" dangerouslySetInnerHTML={{__html:this.state.text}}>
+				<div onClick={this.spanClicked} className="sutratext">
+				<Markuptable text={this.state.text} viewid={0} />
 		        </div>
-		        </div>
+		     </div>
 	}
 });
 
