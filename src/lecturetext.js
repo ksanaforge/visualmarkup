@@ -2,7 +2,7 @@ var Reflux=require("reflux");
 var store=require("./store_text").dsl;
 var actions=require("./action_text");
 var domhelper=require("./domhelper");
-var Markuptable=require("./markuptable");
+var Markable=require("./markable");
 var Controls=React.createClass({
 	nextpara:function() {
 		actions.nextLecturePara();
@@ -33,7 +33,7 @@ var Markuptext=React.createClass({
 	render:function() {
 		return <div><Controls/>
 				<div onClick={this.spanClicked} className="lecturetext">
-				<Markuptable text={this.state.text} viewid={1} />
+				<Markable text={this.state.text} viewid={1} />
 		        </div>
 		     </div>
 	}

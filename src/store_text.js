@@ -121,7 +121,7 @@ var store_ds=Reflux.createStore({
 		this.currentseg=seg;
 		var fileseg=this.db.absSegToFileSeg(seg);
 		var kepanid=segToKepanId(this.db,seg,"kw_jwn");
-		if (kepanid!=this.kepanId && this.kepanid) {			
+		if (kepanid && kepanid!=this.kepanId) {
 			actions.getLectureTextByKepanId(kepanid);
 			if (synckepan) actions.goKepanId(parseInt(kepanid)) ; //this is not good, assuming kepanid start from 1
 		}

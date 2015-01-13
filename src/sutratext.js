@@ -2,7 +2,7 @@ var Reflux=require("reflux");
 var store=require("./store_text").ds;
 var actions=require("./action_text");
 var domhelper=require("./domhelper");
-var Markuptable=require("./markuptable");
+var Markable=require("./markable");
 var Controls=React.createClass({
 	nextpara:function() {
 		actions.nextSutraPara();
@@ -33,7 +33,7 @@ var Refertext=React.createClass({
 	render:function() {
 		return <div><Controls/>
 				<div onClick={this.spanClicked} className="sutratext">
-				<Markuptable text={this.state.text} viewid={0} />
+				<Markable text={this.state.text} viewid={0} />
 		        </div>
 		     </div>
 	}
