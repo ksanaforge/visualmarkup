@@ -4,7 +4,15 @@ var MarkupPanel=require("./markuppanel");
 var DictionaryPanel=require("./dictionarypanel");
 var KepanPanel=require("./kepanpanel");
 var Markuplayer=require("./markuplayer");
+
+
 var maincomponent = React.createClass({
+	componentDidMount:function() {
+		var that=this;
+		window.addEventListener('resize', function(event){
+		  that.forceUpdate();
+		});
+	},
 	render: function() {
 		return <div>
 			<Markuplayer/>

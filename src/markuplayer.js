@@ -1,7 +1,7 @@
 var Reflux=require("reflux");
 var actions=require("./actions_markup");
 var store=require("./store_markup");
-
+var shapes=require("./shapes");
 var Markuplayer=React.createClass({
 	mixins:[Reflux.listenTo(store,"updatemarkup")],
 	getInitialState:function() {
@@ -11,10 +11,8 @@ var Markuplayer=React.createClass({
 		var ctx = this.refs.thecanvas.getDOMNode().getContext("2d");
 		ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
 		for (var i=0;i<data.length;i++){
-			var rect=data[i][0];
-			var style=data[i][1];
-			ctx.fillStyle=style.color;
-			ctx.fillRect(rect[0],rect[3],rect[2]-rect[0],3);
+			var tag=data[i][0],rect=data[i][1];
+			shapes.draw(tag,rect,ctx);
 		}
 	},
 	componentDidMount:function() {

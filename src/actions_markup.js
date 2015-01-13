@@ -1,3 +1,4 @@
 module.exports=require("reflux").createActions([
-		"tokenPositionUpdated"
+		"tokenPositionUpdated",
+		"markupUpdated"
 ]);
