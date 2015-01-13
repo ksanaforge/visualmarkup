@@ -14,12 +14,17 @@ module.exports=React.createClass({
 	},	
 	mixins:[Reflux.listenTo(store,"onData")],
 	onData:function(kepan,db){
-		var toc=stacktoc.genToc(kepan,"金剛經講義");
-		this.setState({db:db,toc:toc});
+		if (typeof kepan=="number") {
+			this.setState({current:kepan});
+		} else {
+			var toc=stacktoc.genToc(kepan,"金剛經講義");
+			this.setState({db:db,toc:toc});			
+		}
 	},
 	render:function(){
 		return <div className="kepanview">
-			<StackToc data={this.state.toc} showText={this.props.showText} current={this.state.current}/>
+			<StackToc data={this.state.toc} 
+			opts={{tocstyle:"ganzhi"}} showText={this.props.showText} current={this.state.current}/>
 		</div>
 	}
 });

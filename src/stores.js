@@ -19,6 +19,8 @@ var	segToKepanId=function(db,seg,fieldname) {
 		var vpos=db.get(["fields",fieldname||"kw","vpos"]);
 		var segoffsets=db.get("segoffsets");
 		var i=kde.bsearch(vpos, segoffsets[seg-1] ,true);
+		var nearest=vpos[i];
+		while (vpos[i+1]==nearest) i++;
 		return N[i];
 };
 
@@ -84,9 +86,14 @@ var store_kepan=Reflux.createStore({
 		kepan.vpos=fields.kw_jwn.vpos;
 		return kepan;
 	},
+	onGoKepanId:function(n) {
+		if (!this.db) return ;
+		this.trigger(n,this.db);
+	},
 	onGetKepan:function(){
 		kde.open("ds",{preload:preloadfields},function(err,db){
 			var kepan=this.prepareKepan(db);
+			this.db=db;
 			this.trigger(kepan,db);
 		},this);
 	},
@@ -106,17 +113,18 @@ var store_ds=Reflux.createStore({
 			this.db=db;
 			if (fileseg){
 				this.currentseg=db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
-				this.onGetSutraTextBySeg(this.currentseg);
+				this.onGetSutraTextBySeg(this.currentseg,false);
 			};
 		});
 	},
-	onGetSutraTextBySeg:function(seg) {
+	onGetSutraTextBySeg:function(seg,synckepan) {
 		this.currentseg=seg;
 		var fileseg=this.db.absSegToFileSeg(seg);
 		var kepanid=segToKepanId(this.db,seg,"kw_jwn");
 		console.log("getting kepan",kepanid)
 		if (kepanid!=this.kepanId && this.kepanid) {			
 			actions.getLectureTextByKepanId(kepanid);
+			if (synckepan) actions.goKepanId(parseInt(kepanid)) ; //this is not good, assuming kepanid start from 1
 		}
 		this.kepanid=kepanid;
 
@@ -128,13 +136,13 @@ var store_ds=Reflux.createStore({
 		if (!this.db) return;
 		var segnames=this.db.get("segnames");
 		if (this.currentseg+1>=segnames.length) return;
-		this.onGetSutraTextBySeg(this.currentseg+1);
+		this.onGetSutraTextBySeg(this.currentseg+1,true);
 	},
 	onPrevSutraPara:function(){
 		if (!this.db) return;
 		var segnames=this.db.get("segnames");
 		if (this.currentseg<2) return;
-		this.onGetSutraTextBySeg(this.currentseg-1);
+		this.onGetSutraTextBySeg(this.currentseg-1,true);
 	}
 
 });

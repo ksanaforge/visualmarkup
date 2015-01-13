@@ -10,5 +10,6 @@ module.exports=require("reflux").createActions([
 		"nextSutraPara",
 		"prevSutraPara",
 		"nextLecturePara",
-		"prevLecturePara"
+		"prevLecturePara",
+		"goKepanId"
 ]);

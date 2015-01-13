@@ -6,3 +6,4 @@
 .tocpanel {overflow-y:auto;height:100%;}
 .textpanel {overflow-y:auto;height:100%;}
 .dictpanel {overflow-y:auto;height:100%;}
+.stacktoc .current {background:yellow;}
