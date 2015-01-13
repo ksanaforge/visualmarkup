@@ -7,3 +7,13 @@
 .textpanel {overflow-y:auto;height:100%;}
 .dictpanel {overflow-y:auto;height:100%;}
 .stacktoc .current {background:yellow;}
+
+
+.markuplayer {
+	width:100%;
+	height:100%;
+	background-color:rgba(0,0,0,0);
+	position:absolute;top:0;left:0;
+	z-index:2000;
+	pointer-events:none;
+}

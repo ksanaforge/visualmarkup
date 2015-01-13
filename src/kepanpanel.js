@@ -6,12 +6,10 @@ var StackToc=stacktoc.component; //react 0.12 component name first character has
 
 module.exports=React.createClass({
 	getInitialState:function() {
+		var kepanid=parseInt(localStorage.getItem("visualmarkup.kepanid")||"1");
 		var current=parseInt(localStorage.getItem("visualmarkup_kepan_current")||"0");
-		return {toc:[],current:current};
+		return {toc:[],current:current,kepanid:kepanid};
 	},
-	componentDidMount:function() { 
-		actions.getKepan();
-	},	
 	mixins:[Reflux.listenTo(store,"onData")],
 	onData:function(kepan,db){
 		if (typeof kepan=="number") {
@@ -21,10 +19,20 @@ module.exports=React.createClass({
 			this.setState({db:db,toc:toc});			
 		}
 	},
+	showText:function(n) {
+		actions.getSutraTextByKepanId(n);
+		actions.getLectureTextByKepanId(n);
+		localStorage.setItem("visualmarkup.kepanid",n);
+	},
+	componentDidMount:function() { 
+		actions.getKepan();
+		actions.getSutraTextByKepanId(this.state.kepanid);
+		actions.getLectureTextByKepanId(this.state.kepanid);
+	},
 	render:function(){
 		return <div className="kepanview">
 			<StackToc data={this.state.toc} 
-			opts={{tocstyle:"ganzhi"}} showText={this.props.showText} current={this.state.current}/>
+			opts={{tocstyle:"ganzhi"}} showText={this.showText} current={this.state.current}/>
 		</div>
 	}
 });
