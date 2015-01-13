@@ -7,19 +7,19 @@ var Markuplayer=require("./markuplayer");
 var maincomponent = React.createClass({
 	render: function() {
 		return <div>
+			<Markuplayer/>
 			<div className="tocpanel col-md-3">
-				<KepanPanel/>
+				<KepanPanel tocname="金剛經講義"/>
 			</div>
 			<div className="textpanel col-md-6">
 				<MarkupPanel/>
 				<SutraText/>
 				<LectureText/>
-				<Markuplayer/>
 			</div>
 			<div className="dictpanel col-md-3">
 				<DictionaryPanel/>
 			</div>
-
+			
 		</div>;
 	}
 });

@@ -7,8 +7,21 @@ var Markuplayer=React.createClass({
 	getInitialState:function() {
 		return {};
 	},
-	updatemarkup:function(drawables) {
-		console.log("markup layer updating ",drawables)
+	updatemarkup:function(data) {
+		var ctx = this.refs.thecanvas.getDOMNode().getContext("2d");
+		ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+		for (var i=0;i<data.length;i++){
+			var rect=data[i][0];
+			var style=data[i][1];
+			ctx.fillStyle=style.color;
+			ctx.fillRect(rect[0],rect[3],rect[2]-rect[0],3);
+		}
+	},
+	componentDidMount:function() {
+		var ctx = this.refs.thecanvas.getDOMNode().getContext("2d");
+		ctx.canvas.width = window.innerWidth;
+		ctx.canvas.height = window.innerHeight;
+		window.ctx=ctx;
 	},
 	render:function() {
 		return <div className='markuplayer'>

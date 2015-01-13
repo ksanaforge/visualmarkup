@@ -9,12 +9,15 @@ module.exports=React.createClass({
 		var kepanid=parseInt(localStorage.getItem("visualmarkup.kepanid")||"1");
 		return {toc:[],current:0,kepanid:kepanid};
 	},
+	propTypes:{
+		tocname:React.PropTypes.string.isRequired
+	},
 	mixins:[Reflux.listenTo(store,"onData")],
 	onData:function(kepan,db){
 		if (typeof kepan=="number") {
 			this.setState({current:kepan});
 		} else {
-			var toc=stacktoc.genToc(kepan,"金剛經講義");
+			var toc=stacktoc.genToc(kepan,this.props.tocname);
 			this.setState({db:db,toc:toc});			
 		}
 	},
