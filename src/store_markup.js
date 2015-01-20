@@ -4,7 +4,7 @@
 var Reflux=require("reflux");
 var actions=require("./actions_markup");
 var testmarkups=require("./testmarkups");
-
+var persistent=require("./persistent");
 var layoutMarkups=function(viewpositions,viewmarkups) {
 	var out=[];
 	for (var i=0;i<viewmarkups.length;i++) {
