@@ -49,7 +49,7 @@ var store_dsl=Reflux.createStore({
 		var kepanid=segToKepanId(this.db,seg);
 
 		this.kepanid=kepanid;
-		kse.highlightSeg(this.db,fileseg.file,fileseg.seg,{q:" ",span:true},function(data){
+		kse.highlightSeg(this.db,fileseg.file,fileseg.seg,{token:true},function(data){
 			this.trigger(data.text,this.db);
 		},this);
 	},
@@ -127,7 +127,7 @@ var store_ds=Reflux.createStore({
 		}
 		this.kepanid=kepanid;
 
-		kse.highlightSeg(this.db,fileseg.file,fileseg.seg,{q:" ",span:true},function(data){
+		kse.highlightSeg(this.db,fileseg.file,fileseg.seg,{token:true},function(data){
 			this.trigger(data.text,this.db);
 		},this);
 	},

@@ -23,6 +23,7 @@ var layoutMarkups=function(viewpositions,viewmarkups) {
 	}
 	return out;
 }
+
 var store_markup=Reflux.createStore({
 	listenables: [actions]
 	,viewmarkups:testmarkups

@@ -12,6 +12,11 @@ module.exports=React.createClass({
 		return <li>{item}</li>
 	},
 	render:function(){
-		return <div className="dictview"><ul>{this.state.data.map(this.renderItem)}</ul></div>
+		return <div className="dictionarypanel panel panel-success">
+				<div className="panel-heading text-center">教育部國語辭典</div>
+				<div className="panel-body dictionarytext">
+				<ul>{this.state.data.map(this.renderItem)}</ul>
+				</div>
+		</div>
 	}
 });

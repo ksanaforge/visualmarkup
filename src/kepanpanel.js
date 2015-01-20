@@ -31,9 +31,12 @@ module.exports=React.createClass({
 		//actions.getLectureTextByKepanId(this.state.kepanid);
 	},
 	render:function(){
-		return <div className="kepanview">
+		return <div className="panel panel-warning">
+			<div className="panel-heading text-center">科文</div>
+			<div className="panel-body kepanview">
 			<StackToc data={this.state.toc} 
 			opts={{tocstyle:"ganzhi"}} showText={this.showText} current={this.state.current}/>
+			</div>
 		</div>
 	}
 });
