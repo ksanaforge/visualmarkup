@@ -19,14 +19,14 @@ var tagset_punctuation=[
   ,{label:"分號", name:"semicolon",type:"marksimple"}  
   ,{label:"冒號", name:"colon",type:"marksimple"}  
   ,{label:"引號", name:"quotationmark",type:"marksimple"}    
-  ,{label:"夾注號", name:"warichu", type:"marksimple" } 
+  ,{label:"夾注", name:"warichu", type:"marksimple" } 
   ,{label:"問號", name:"questionmark", type:"marksimple"  } 
-  ,{label:"驚嘆號", name:"exclamationmark",type:"marksimple"}  
-  ,{label:"破折號", name:"emdash",type:"marksimple"}  
-  ,{label:"刪節號", name:"ellipsis",type:"marksimple"}  
-  ,{label:"專名號", name:"propernamemark",type:"marksimple"}  
-  ,{label:"間隔號", name:"interpunct",type:"marksimple"}  
-  ,{label:"連接號", name:"dash",type:"marksimple"}  
+  ,{label:"驚嘆", name:"exclamationmark",type:"marksimple"}  
+  ,{label:"破折", name:"emdash",type:"marksimple"}  
+  ,{label:"刪節", name:"ellipsis",type:"marksimple"}  
+  ,{label:"專名", name:"propernamemark",type:"marksimple"}  
+  ,{label:"間隔", name:"interpunct",type:"marksimple"}  
+  ,{label:"連接", name:"dash",type:"marksimple"}  
 
 ];
 var tagset_defination=[

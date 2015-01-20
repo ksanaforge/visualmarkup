@@ -5,7 +5,6 @@ var Reflux=require("reflux");
 var TagsetTab=React.createClass({
 	mixins:[Reflux.listenTo(store,"onTagSet")],
 	propTypes:{
-		data:React.PropTypes.array.isRequired
 	} ,
 	onTagSet:function(tagset) {
 		this.setState({tagset:tagset});

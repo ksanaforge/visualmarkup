@@ -21,10 +21,27 @@ var drawDoubt=function(rect,ctx) {
 	//ctx.fillStyle="red";
 	//ctx.fillRect(rect[0],rect[3],rect[2]-rect[0],3);
 }
-var painters={important:drawImportant,doubt:drawDoubt};
+var PartOfSpeechColor={noun:"#F33",verb:"#993",adjective:"#66F",preposition:"#383",conjunction:"#F0F"};
+var drawPartOfSpeech=function(rect,ctx,tag) {
+	ctx.beginPath();
+	ctx.strokeStyle=PartOfSpeechColor[tag];
+	ctx.setLineDash([]);
+	ctx.lineWidth=3;
+	ctx.rect(rect[0],rect[1],rect[2]-rect[0],rect[3]-rect[1]);
+	ctx.stroke();
+}
+
+var painters={important:drawImportant,doubt:drawDoubt, 
+	noun:drawPartOfSpeech, 
+	verb:drawPartOfSpeech,
+	adjective:drawPartOfSpeech,
+	adverb:drawPartOfSpeech,
+	particle:drawPartOfSpeech,
+	preposition:drawPartOfSpeech,
+	conjunction:drawPartOfSpeech};
 
 var draw=function(tag,rect,ctx) {
 	var painter=painters[tag];
-	if (painter) painter(rect,ctx);
+	if (painter) painter(rect,ctx,tag);
 }
 module.exports={draw:draw};

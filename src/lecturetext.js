@@ -1,8 +1,9 @@
 var Reflux=require("reflux");
 var store=require("./store_text").dsl;
-var actions=require("./action_text");
+var actions=require("./actions_text");
 var domhelper=require("./domhelper");
 var Markable=require("./markable");
+var viewid=1;
 var Controls=React.createClass({
 	nextpara:function() {
 		actions.nextLecturePara();
@@ -24,18 +25,19 @@ var Markuptext=React.createClass({
 		return {text:[],db:null};
 	},
 	spanClicked:function(e) {
-		tofind=domhelper.getTextUntilPunc(e.target);
-		actions.searchDictionary(tofind);
+		var tofind=domhelper.getTextUntilPunc(e.target);
+		var n=parseInt(e.target.dataset.n);
+		actions.searchDictionary(tofind,n,viewid);
 	},
 	lecturetext:function(text,db){
 		if (text) this.setState({text:text});
 		if (this.state.db!=db) this.setState({db:db});
 	}, 
 	render:function() {
-		return <div className="panel panel-info">
+		return <div className="panel panel-success">
 				<div className="panel-heading"><Controls/></div>
 				<div onClick={this.spanClicked} className="panel-body lecturetext">
-				<Markable text={this.state.text} viewid={1} />
+				<Markable text={this.state.text} viewid={viewid} />
 		        </div>
 		     </div>
 	}

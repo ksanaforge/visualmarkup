@@ -1,6 +1,6 @@
 var TagParam=React.createClass({
 	render:function() {
-		return <div className="tagparam">至少要兩行吧</div>
+		return <div className="tagparam">標記屬性</div>
 	}
 });
 module.exports=TagParam;

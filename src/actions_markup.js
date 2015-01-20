@@ -3,5 +3,6 @@ module.exports=require("reflux").createActions([
 		"switchTagset",
 		"setSelection",
 		"tokenPositionUpdated",
+		"createMarkup",
 		"markupUpdated"
 ]);

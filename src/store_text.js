@@ -3,7 +3,7 @@ var kde=require("ksana-database");
 var kse=require("ksana-search");
 var Reflux=require("reflux");
 var preloadfields=[["fields"],["extra"]];
-var actions=require("./action_text");
+var actions=require("./actions_text");
 
 var kepanIdToFileSeg=function(db,kepanid,fieldname) {
 	var N=db.get(["fields",fieldname||"kw","n"]);
@@ -170,13 +170,13 @@ var fetchDef=function(db,segids,cb,context) {
 }
 var store_dictionary=Reflux.createStore({
 	listenables: [actions],
-	onSearchDictionary:function(tofind) {
+	onSearchDictionary:function(tofind,vpos,viewid) {
 		if (!tofind) return;
 		kde.open("moedict",function(err,db){
 			var entries=db.get("segnames");
 			var segids=matchEntries(entries,tofind);
 			fetchDef(db,segids,function(data){
-				this.trigger(data,db);
+				this.trigger(data,{db:db,vpos:vpos,viewid:viewid});
 			},this); 
 			
 		},this);

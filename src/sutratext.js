@@ -1,6 +1,6 @@
 var Reflux=require("reflux");
 var store=require("./store_text").ds;
-var actions=require("./action_text");
+var actions=require("./actions_text");
 var domhelper=require("./domhelper");
 var Markable=require("./markable");
 var Controls=React.createClass({
@@ -18,25 +18,26 @@ var Controls=React.createClass({
 		    </div>
 	}
 });
-
+var viewid=0;
 var Refertext=React.createClass({
 	mixins:[Reflux.listenTo(store,"sutratext")],
 	getInitialState:function() {
 		return {text:[],db:null};
 	},
 	spanClicked:function(e) {
-		tofind=domhelper.getTextUntilPunc(e.target);
-		actions.searchDictionary(tofind);
+		var tofind=domhelper.getTextUntilPunc(e.target);
+		var n=parseInt(e.target.dataset.n); 
+		actions.searchDictionary(tofind,n,viewid);
 	},
 	sutratext:function(text,db){
 		if (text) this.setState({text:text});
 		if (this.state.db!=db) this.setState({db:db});
 	}, 
 	render:function() {
-		return <div className="panel panel-info">
+		return <div className="panel panel-success">
 				<div className="panel-heading"><Controls/></div>
 				<div onClick={this.spanClicked} className="sutratext panel-body">
-					<Markable text={this.state.text} viewid={0} />
+					<Markable text={this.state.text} viewid={viewid} />
 		        </div>
 		     </div>
 	}

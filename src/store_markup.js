@@ -31,6 +31,25 @@ var store_markup=Reflux.createStore({
 	,onMarkupUpdated:function(){
 		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups);
 		if (drawables) this.trigger(drawables);
+	},
+	removeMarkupAtPos:function(markups,vpos,exclusive) {
+		return markups.filter(function(m){
+			return !(m[0]==vpos && exclusive.indexOf(m[2].tag)>-1);
+		})
+	}
+	,createMarkup:function(viewid,vpos,length,payload,opts) {
+		opts=opts||{};
+		var markups=this.viewmarkups[viewid];
+		if (!markups) {
+			console.error("invalid viewid",viewid);
+			return;
+		}
+		if (opts.exclusive) {
+			markups=this.removeMarkupAtPos(markups,vpos,opts.exclusive);
+		}
+		markups.push([vpos,length,payload]);
+		this.viewmarkups[viewid]=markups;
+		this.onMarkupUpdated();
 	}
 	,onTokenPositionUpdated:function(positions,nview) {
 		this.viewpositions[nview]=positions;

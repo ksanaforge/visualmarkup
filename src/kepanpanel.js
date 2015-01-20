@@ -1,6 +1,6 @@
 var Reflux=require("reflux");
 var store=require("./store_text").kepan;
-var actions=require("./action_text");
+var actions=require("./actions_text");
 var stacktoc=require("ksana2015-stacktoc");
 var StackToc=stacktoc.component; //react 0.12 component name first character has to beuppercase
 
@@ -31,7 +31,7 @@ module.exports=React.createClass({
 		//actions.getLectureTextByKepanId(this.state.kepanid);
 	},
 	render:function(){
-		return <div className="panel panel-warning">
+		return <div className="panel panel-info">
 			<div className="panel-heading text-center">科文</div>
 			<div className="panel-body kepanview">
 			<StackToc data={this.state.toc} 
