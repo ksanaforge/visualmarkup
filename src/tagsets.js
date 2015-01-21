@@ -31,7 +31,7 @@ var tagset_punctuation=[
 ];
 var tagset_defination=[
   {label:"釋義", name:"defination", type:"markinternal2",labels:["字詞","釋義"]  } 
-  ,{label:"同名異譯", name:"defination", type:"markinternal2",labels:["字詞","譯名"]  } 
+  ,{label:"同名異譯", name:"translation", type:"markinternal2",labels:["字詞","譯名"]  } 
 
 ];
 

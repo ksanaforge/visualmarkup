@@ -4,7 +4,7 @@ var actions=require("./actions_text");
 var stacktoc=require("ksana2015-stacktoc");
 var StackToc=stacktoc.component; //react 0.12 component name first character has to beuppercase
 
-module.exports=React.createClass({
+var KepanPanel=React.createClass({
 	getInitialState:function() {
 		var kepanid=parseInt(localStorage.getItem("visualmarkup.kepanid")||"1");
 		return {toc:[],current:0,kepanid:kepanid};
@@ -40,3 +40,5 @@ module.exports=React.createClass({
 		</div>
 	}
 });
+
+module.exports=KepanPanel;

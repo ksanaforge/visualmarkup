@@ -1,6 +1,6 @@
 var Reflux=require("reflux");
-var store=require("./store_text").ds;
 var actions=require("./actions_text");
+var actions_markup=require("./actions_markup");
 var domhelper=require("./domhelper");
 var Markable=require("./markable");
 var Controls=React.createClass({
@@ -20,14 +20,15 @@ var Controls=React.createClass({
 });
 var viewid=0;
 var Refertext=React.createClass({
-	mixins:[Reflux.listenTo(store,"sutratext")],
+	mixins:[Reflux.listenTo(require("./store_text").ds,"sutratext")],
 	getInitialState:function() {
 		return {text:[],db:null};
 	},
 	spanClicked:function(e) {
 		var tofind=domhelper.getTextUntilPunc(e.target);
-		var n=parseInt(e.target.dataset.n); 
-		actions.searchDictionary(tofind,n,viewid);
+		var vpos=parseInt(e.target.dataset.n); 
+		actions.searchDictionary(tofind,vpos,viewid);
+		actions_markup.editMarkupAtPos(viewid,vpos);
 	},
 	sutratext:function(text,db){
 		if (text) this.setState({text:text});

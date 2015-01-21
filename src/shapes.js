@@ -30,8 +30,24 @@ var drawPartOfSpeech=function(rect,ctx,tag) {
 	ctx.rect(rect[0],rect[1],rect[2]-rect[0],rect[3]-rect[1]);
 	ctx.stroke();
 }
+var readerExperssColor={important2:"#F33"};
 
-var painters={important:drawImportant,doubt:drawDoubt, 
+var drawReaderExpress=function(rect,ctx,tag) {
+	var cx=(rect[0]+rect[2])/2;
+	var cy=(rect[1]+rect[3])/2;
+	var r=(rect[3]-rect[1])/2 +1;
+
+	ctx.beginPath();
+	ctx.setLineDash([3])
+	ctx.lineWidth=2;
+	ctx.strokeStyle=readerExperssColor[tag];
+	ctx.arc(cx,cy,r,0,2*Math.PI,false);
+	ctx.stroke();
+}
+
+var painters={
+	important:drawImportant,doubt:drawDoubt, 
+	important2:drawReaderExpress,
 	noun:drawPartOfSpeech, 
 	verb:drawPartOfSpeech,
 	adjective:drawPartOfSpeech,

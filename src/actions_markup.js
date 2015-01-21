@@ -4,5 +4,9 @@ module.exports=require("reflux").createActions([
 		"setSelection",
 		"tokenPositionUpdated",
 		"createMarkup",
-		"markupUpdated"
+		"editMarkup",
+		"editMarkupAtPos",
+		"saveMarkup",
+		"markupUpdated",
+		"setVisibleTags"
 ]);

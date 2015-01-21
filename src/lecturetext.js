@@ -1,6 +1,6 @@
 var Reflux=require("reflux");
-var store=require("./store_text").dsl;
 var actions=require("./actions_text");
+var actions_markup=require("./actions_markup");
 var domhelper=require("./domhelper");
 var Markable=require("./markable");
 var viewid=1;
@@ -20,14 +20,16 @@ var Controls=React.createClass({
 	}
 });
 var Markuptext=React.createClass({
-	mixins:[Reflux.listenTo(store,"lecturetext")],
+	mixins:[Reflux.listenTo(require("./store_text").dsl,"lecturetext")],
 	getInitialState:function() {
 		return {text:[],db:null};
 	},
 	spanClicked:function(e) {
 		var tofind=domhelper.getTextUntilPunc(e.target);
-		var n=parseInt(e.target.dataset.n);
-		actions.searchDictionary(tofind,n,viewid);
+		var vpos=parseInt(e.target.dataset.n);
+		if (isNaN(vpos)) return;
+		actions.searchDictionary(tofind,vpos,viewid);
+		actions_markup.editMarkupAtPos(viewid,vpos);
 	},
 	lecturetext:function(text,db){
 		if (text) this.setState({text:text});

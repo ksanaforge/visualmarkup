@@ -33,7 +33,8 @@ var DictionaryPanel=React.createClass({
 		var payload={tag:tag,memo:explain};
 		var exclusive=[];
 		for (var key in partofspeechtag) exclusive.push(partofspeechtag[key]);
-		actions_markup.createMarkup(this.state.viewid,this.state.vpos,term.length,payload,{exclusive:exclusive});
+		var m=actions_markup.createMarkup(this.state.viewid,this.state.vpos,term.length,payload,{exclusive:exclusive});
+		actions_markup.editMarkup(this.state.viewid,m);
 	},
 	onclick:function(e){
 		if(e.target.nodeName=="BUTTON") {
@@ -42,7 +43,7 @@ var DictionaryPanel=React.createClass({
 			this.createMarkup(e.target.innerHTML,explain,term);
 		}
 	},
-	renderItem:function(item) {
+	renderItem:function(item,idx) {
 		var lines=item.split("\n");
 		var term=lines.shift();
 		var out=['<div data-term="'+term+'">','<span class="dictentry">'+term+'</span>'];
@@ -56,7 +57,7 @@ var DictionaryPanel=React.createClass({
 		}
 		out.push("</div>");
 		
-		return <div dangerouslySetInnerHTML={{__html:out.join("<br/>")}}/>
+		return <div key={"I"+idx} dangerouslySetInnerHTML={{__html:out.join("<br/>")}}/>
 	},
 	render:function(){
 		return <div className="dictionarypanel panel panel-warning">

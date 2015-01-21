@@ -1,5 +1,5 @@
 var TagsetTab=require("./tagsettab");
-var TagParam=require("./tagparam");
+var Trait=require("./trait");
 var actions=require("./actions_markup");
 
 var Reflux=require("reflux");
@@ -12,7 +12,7 @@ var MarkupPanel=React.createClass({
 			<div>
 			<div className="col-md-1">LOGO</div>
 			<div className="col-md-7"><TagsetTab/></div>
-			<div className="col-md-4"><TagParam/></div>
+			<div className="col-md-4"><Trait/></div>
 			</div>
 		</div>
 	}
