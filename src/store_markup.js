@@ -5,11 +5,10 @@ var Reflux=require("reflux");
 var actions=require("./actions_markup");
 var testmarkups=require("./testmarkups");
 var persistent=require("./persistent");
-
 var layoutMarkups=function(viewpositions,viewmarkups, visibletags) {
 	var out=[];
 	for (var i=0;i<viewmarkups.length;i++) {
-		var markups=viewmarkups[i];
+		var markups=viewmarkups[i].markups;
 		var positions=viewpositions[i];
 		if (!positions) continue ;
 		for (var j=0;j<markups.length;j++) {
@@ -35,27 +34,44 @@ var store_markup=Reflux.createStore({
 	,onMarkupUpdated:function(){
 		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups,this.visibletags);
 		if (drawables) this.trigger(drawables);
+		actions.cancelEdit();
 	}
 	,removeMarkupAtPos:function(markups,vpos,exclusive) {
 		return markups.filter(function(m){
 			return !(m[0]==vpos && exclusive.indexOf(m[2].tag)>-1);
-		})
+		});
+	}
+	,dockeys:function() {
+		return ["0_"+this.tagset,"1_"+this.tagset];
+	}
+	,loadMarkups:function() {
+		persistent.loadMarkups(this.dockeys(),function(content){
+			for (var i=0;i<content.length;i++){
+				this.viewmarkups[i]=content[i];
+			}
+			this.onMarkupUpdated();
+		},this);		
+	}
+	,onSetTagset:function(tagset){
+		console.log(tagset)
+		this.tagset=tagset;
+		this.loadMarkups();
 	}
 	,onSetVisibleTags:function(visibletags,norefresh) {
 		this.visibletags=visibletags;
 		if (!norefresh) this.onMarkupUpdated();
 	}
-	,deleteMarkup:function(viewid,n) {
-		var markups=this.viewmarkups[viewid];
+	,onDeleteMarkup:function(viewid,n) {
+		var markups=this.viewmarkups[viewid].markups;
 		if (!markups) return;
 		if (n>=markups.length) return;
-		this.viewmarkups[viewid]=markups.splice(n,1);
-		actions.cancelEdit();
+		markups.splice(n,1);
+		this.viewmarkups[viewid].markups=markups;
 		this.onMarkupUpdated();
 	}
 	,createMarkup:function(viewid,vpos,length,payload,opts) {
 		opts=opts||{};
-		var markups=this.viewmarkups[viewid];
+		var markups=this.viewmarkups[viewid].markups;
 		if (!markups) {
 			console.error("invalid viewid",viewid);
 			return;
@@ -63,13 +79,14 @@ var store_markup=Reflux.createStore({
 		if (opts.exclusive) {
 			markups=this.removeMarkupAtPos(markups,vpos,opts.exclusive);
 		}
-		markups.push([vpos,length,payload]);
-		this.viewmarkups[viewid]=markups;
-		actions.cancelEdit();
+		var markup=[vpos,length,payload];
+		markups.push(markup);
+		this.viewmarkups[viewid].markups=markups;
 		this.onMarkupUpdated();
+		if (opts.edit) actions.editMarkup(viewid,markups.length-1,markup);
 	}
 	,findVisibleMarkupAt:function(viewid,vpos){
-		var markups=this.viewmarkups[viewid];
+		var markups=this.viewmarkups[viewid].markups;
 		if (!markups) return null;
 		var inrange=[]; // markup, distance, n in viewmarkups
 		for (var i=0;i<markups.length;i++) {
@@ -87,7 +104,7 @@ var store_markup=Reflux.createStore({
 		actions.editMarkup.apply(this,m);
 	}
 	,onSaveMarkup:function(viewid,vpos,markup,opts){
-		this.viewmarkups[viewid][n]=markup;
+		this.viewmarkups[viewid].markups[n]=markup;
 		opts=opts||{};
 		if (opts.forceUpdate) this.onMarkupUpdated();
 	}
@@ -96,6 +113,13 @@ var store_markup=Reflux.createStore({
 		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups,this.visibletags);
 		if (drawables) this.trigger(drawables);
 	}
+	,onSaveMarkups:function(cb,context){
+		persistent.saveMarkups(this.viewmarkups , cb,context);
+	}
+	,onClearAllMarkups:function(){
+		persistent.resetMarkups(this.viewmarkups);
+		this.onMarkupUpdated();
+	}	
 });
 
 module.exports=store_markup;

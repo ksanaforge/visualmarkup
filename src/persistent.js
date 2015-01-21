@@ -1,6 +1,7 @@
 var dbname="visualmarkup";
 
-//var db=new PouchDB(dbname);
+var db=new PouchDB(dbname);
+/*
 if (ksana.platform=="node-webkit" || window.location.host.substring(0,9)=="127.0.0.1"){
     var db=null;
     if (typeof PouchDB !="undefined") {
@@ -10,7 +11,7 @@ if (ksana.platform=="node-webkit" || window.location.host.substring(0,9)=="127.0
     //var db=new PouchDB('http://114.34.238.149:5984/'+dbname);
     var db=new PouchDB('http://ya.ksana.tw:5984/'+dbname);
 }
-
+*/
 
 
 var loadMarkups=function(keys,cb,context){
@@ -32,10 +33,12 @@ var loadMarkups=function(keys,cb,context){
 }
 
 var resetMarkups=function(bulk) {
-	//db.destroy("pncdemo");  //doesn't work on nodewebkit
+	//db.destroy(dbname);  //doesn't work on nodewebkit
+  
 	bulk.map(function(b){
 		b.markups=[];
 	});
+  saveMarkups(bulk);
 }
 
 var saveMarkups=function(markups,cb,context) {
@@ -43,11 +46,12 @@ var saveMarkups=function(markups,cb,context) {
 	db.bulkDocs(markups,function(err,response){
 		if (cb) cb.apply(context,[response]);
 	});
-    
+  /*
     db.bulkDocs(markups,function(err,response){
        if (err) console.log(err);
        else console.log(response);
     });
+  */
 }
 
 module.exports={loadMarkups:loadMarkups,saveMarkups:saveMarkups,resetMarkups:resetMarkups}

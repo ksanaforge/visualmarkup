@@ -2,16 +2,32 @@ var trait_mixin={
 	propsType:{
 		trait:React.PropTypes.object.isRequired
 		,onChanged:React.PropTypes.func
-	},
-	componentDidMount:function() {
-		var trait=this.props.trait;
+	}
+	,componentWillReceiveProps:function(nextprops) {
+		if (nextprops.trait!=this.props.trait) this.copyValue(nextprops);
+	}
+	,componentDidMount:function() {
+		this.copyValue(this.props);
+	}
+	,copyValue:function(props) {
+		var trait=props.trait;
 		for (var i in trait) {
 			if (this.refs[i]) {
 				this.refs[i].getDOMNode().value=trait[i];
 			}
 		}
-	},
-	change:function(e){
+	}
+	,getValue:function() {
+		var out={};
+		var trait=this.props.trait;
+		for (var i in this.props.trait) {
+			if (this.refs[i]) {
+				out[i]=this.refs[i].getDOMNode().value;
+			}
+		}
+		return out;
+	}
+	,change:function(e){
 		if (this.props.onChanged) this.props.onChanged(e.target.value);
 	}
 }

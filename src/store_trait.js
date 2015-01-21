@@ -12,6 +12,9 @@ var store_trait=Reflux.createStore({
 	,onRestore:function() {
 		this.trigger(this.viewid,this.nmarkup,this.markup);
 	}
+	,onCancelEdit:function(){
+		this.trigger();	
+	}
 });
 
 module.exports=store_trait;

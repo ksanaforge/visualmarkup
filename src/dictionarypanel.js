@@ -18,7 +18,7 @@ var SearchDictionary=React.createClass({
 		}
 	});
 var partofspeechtag={"動":"verb","副":"adverb","形":"adjective","名":"noun","助":"particle"
-,"介":"preposition","連":"conjunction"};
+,"介":"preposition","連":"conjunction","代":"pronoun"};
 var DictionaryPanel=React.createClass({
 	mixins:[Reflux.listenTo(store,"onData")],
 	getInitialState:function() {
@@ -30,11 +30,10 @@ var DictionaryPanel=React.createClass({
 	createMarkup:function(partofspeech,explain,term) {
 		//actions.addMarkup();
 		var tag=partofspeechtag[partofspeech];
-		var payload={tag:tag,memo:explain};
+		var payload={tag:tag,source:this.state.db.dbname,explain:explain};
 		var exclusive=[];
 		for (var key in partofspeechtag) exclusive.push(partofspeechtag[key]);
-		var m=actions_markup.createMarkup(this.state.viewid,this.state.vpos,term.length,payload,{exclusive:exclusive});
-		actions_markup.editMarkup(this.state.viewid,m);
+		var m=actions_markup.createMarkup(this.state.viewid,this.state.vpos,term.length,payload,{edit:true,exclusive:exclusive});
 	},
 	onclick:function(e){
 		if(e.target.nodeName=="BUTTON") {

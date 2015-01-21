@@ -21,7 +21,8 @@ var drawDoubt=function(rect,ctx) {
 	//ctx.fillStyle="red";
 	//ctx.fillRect(rect[0],rect[3],rect[2]-rect[0],3);
 }
-var PartOfSpeechColor={noun:"#F33",verb:"#993",adjective:"#66F",preposition:"#383",conjunction:"#F0F"};
+var PartOfSpeechColor={noun:"#F33",verb:"#993",adjective:"#66F",
+pronoun:"#7F7",preposition:"#383",conjunction:"#F0F"};
 var drawPartOfSpeech=function(rect,ctx,tag) {
 	ctx.beginPath();
 	ctx.strokeStyle=PartOfSpeechColor[tag];
@@ -53,6 +54,7 @@ var painters={
 	adjective:drawPartOfSpeech,
 	adverb:drawPartOfSpeech,
 	particle:drawPartOfSpeech,
+	pronoun:drawPartOfSpeech,
 	preposition:drawPartOfSpeech,
 	conjunction:drawPartOfSpeech};
 

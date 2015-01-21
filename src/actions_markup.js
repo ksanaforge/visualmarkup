@@ -1,12 +1,16 @@
 module.exports=require("reflux").createActions([
 		"loadTagsets",
-		"switchTagset",
+		"setTagset",
 		"setSelection",
 		"tokenPositionUpdated",
 		"createMarkup",
 		"editMarkup",
 		"editMarkupAtPos",
 		"saveMarkup",
+		"deleteMarkup",
+		"cancelEdit",
 		"markupUpdated",
-		"setVisibleTags"
+		"setVisibleTags",
+		"clearAllMarkups",
+		"saveMarkups"
 ]);

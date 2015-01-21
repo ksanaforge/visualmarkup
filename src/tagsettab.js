@@ -30,6 +30,7 @@ var TagsetTab=React.createClass({
 	}
 	,setVisibility:function(selected,norefresh) {
 		var tagset=this.getTagset(selected);
+		actions.setTagset(this.state.tagset[selected].name);
 		actions.setVisibleTags(tagset.map(function(t){return t.name}),norefresh);
 	}
 	,getTagset:function(n) {
