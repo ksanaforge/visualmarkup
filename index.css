@@ -7,10 +7,10 @@ body{overflow:hidden;}
 .dictionarytext  {font-size:150%;}
 .dictview {font-size:150%;}
 .tocitem {font-size:100%;}
-.tocpanel {overflow-y:auto;height:90%;}
-.markuppanel {overflow-y:auto;height:10%;background-color:whitesmoke;}
-.textpanel {overflow-y:auto;height:90%;}
-.dictpanel {overflow-y:auto;height:90%;}
+.tocpanel {overflow-y:auto;height:97%;}
+.markuppanel {overflow-y:auto;height:95%;}
+.textpanel {overflow-y:auto;height:100%;}
+.dictpanel {overflow-y:auto;height:97%;}
 .stacktoc .current {font-weight:bold;}
 
 .markuplayer {
@@ -22,6 +22,8 @@ body{overflow:hidden;}
 	pointer-events:none;
 }
 .traitpanel {font-size:150%;}
+.dropdown  {font-size:150%;}
+.dropdown-menu {font-size:100%;}
 .tagsetlabel {cursor:pointer;font-size:150%;}
 .tagsetlabel.disabled {color:silver;}
 .selected {background:highlight;}

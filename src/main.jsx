@@ -44,7 +44,7 @@ var maincomponent = React.createClass({
 				<LectureText/>
 			</div>
 			<div className="dictpanel col-md-3">
-				<div className="col-md-4"><Trait/></div>
+				<Trait/>
 			</div>
 		</div>;
 	}

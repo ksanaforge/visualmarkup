@@ -92,17 +92,13 @@ var Trait=React.createClass({
 		var disabled_delete=!this.state.modified?"":" disabled";
 		return <div>
 				<button onClick={this.deletemarkup} className={"btn btn-danger"+disabled_delete}>Delete</button>
-				<br/><button onClick={this.savemarkup} className={"btn btn-success"+disabled}>Save</button>
+				<button onClick={this.savemarkup} className={"btn btn-success"+disabled}>Save</button>
 			   </div>
 	}
 	,render:function() {
 		return <div className="traitpanel">
-				<div className="col-md-10">
 					{this.renderTemplate()}
-				</div>
-				<div className="col-md-2">
 					{this.renderControls()}
-				</div>				
 			</div>
 	}
 });
