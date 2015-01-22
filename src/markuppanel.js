@@ -12,7 +12,6 @@ var MarkupPanel=React.createClass({
 			<div>
 			<div className="col-md-1">LOGO</div>
 			<div className="col-md-7"><TagsetTab/></div>
-			<div className="col-md-4"><Trait/></div>
 			</div>
 		</div>
 	}

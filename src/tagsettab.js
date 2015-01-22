@@ -39,8 +39,8 @@ var TagsetTab=React.createClass({
 	}
 	,render:function() {
 		//this.disableRandom(tagset);
-		return <div>
-			<Choices data={this.state.tagset} onSelect={this.onSelect} labelfor={true}/>
+		return <div className="tagsetpanel">
+			<Choices data={this.state.tagset} onSelect={this.onSelect} type="dropdown"/>
 			<Choices data={this.getTagset(this.state.selected)} onSelect={this.onSelectTag} type="checkbox" checked={true}/>
 		</div>
 	}
