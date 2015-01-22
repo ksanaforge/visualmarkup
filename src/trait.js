@@ -42,7 +42,7 @@ var MarkupControls=React.createClass({
 			<button onClick={this.save} className="btn btn-success">{this.state.savecaption}</button>
 			<span>
     			<label>
-      			<input type="checkbox" onChange={this.setDanger}/>danger
+      			danger<input type="checkbox" onChange={this.setDanger}/>
     			</label>
   			</span>
 			{this.renderDanger()}

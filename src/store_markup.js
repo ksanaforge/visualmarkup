@@ -28,7 +28,7 @@ var store_trait=require("./store_trait");
 
 var store_markup=Reflux.createStore({
 	listenables: [actions]
-	,viewmarkups:testmarkups
+	,viewmarkups:[]
 	,viewpositions:[]
 	,visibletags:[]
 	,onMarkupUpdated:function(){
@@ -42,7 +42,7 @@ var store_markup=Reflux.createStore({
 		});
 	}
 	,dockeys:function() {
-		return ["0_"+this.tagset,"1_"+this.tagset];
+		return ["0_"+this.tagsetname,"1_"+this.tagsetname];
 	}
 	,loadMarkups:function() {
 		persistent.loadMarkups(this.dockeys(),function(content){
@@ -52,9 +52,8 @@ var store_markup=Reflux.createStore({
 			this.onMarkupUpdated();
 		},this);		
 	}
-	,onSetTagset:function(tagset){
-		console.log(tagset)
-		this.tagset=tagset;
+	,onSetTagsetName:function(tagsetname){
+		this.tagsetname=tagsetname;
 		this.loadMarkups();
 	}
 	,onSetVisibleTags:function(visibletags,norefresh) {

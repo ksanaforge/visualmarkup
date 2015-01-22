@@ -16,6 +16,7 @@ var store_tagset=Reflux.createStore({
 		};
 		return null;
 	}
+	,
 
 });
 module.exports=store_tagset;

@@ -1,5 +1,6 @@
 var Reflux=require("reflux");
 var store=require("./store_text").dictionary;
+var store_tagsetname=require("./store_tagsetname");
 var actions_text=require("./actions_text");
 var actions_markup=require("./actions_markup");
 var SearchDictionary=React.createClass({
@@ -20,13 +21,16 @@ var SearchDictionary=React.createClass({
 var partofspeechtag={"動":"verb","副":"adverb","形":"adjective","名":"noun","助":"particle"
 ,"介":"preposition","連":"conjunction","代":"pronoun"};
 var DictionaryPanel=React.createClass({
-	mixins:[Reflux.listenTo(store,"onData")],
+	mixins:[Reflux.listenTo(store,"onData"),Reflux.listenTo(store_tagsetname,"onTagsetname")],
 	getInitialState:function() {
-		return {data:[]}
+		return {data:[],enableMarkup:false}
 	},
 	onData:function(data,extra){
 		this.setState({data:data,db:extra.db,viewid:extra.viewid,vpos:extra.vpos});
 	}, 
+	onTagsetname:function(tagsetname) {
+		this.setState({enableMarkup:tagsetname=="partofspeech"});
+	},
 	createMarkup:function(partofspeech,explain,term) {
 		//actions.addMarkup();
 		var tag=partofspeechtag[partofspeech];
@@ -48,7 +52,7 @@ var DictionaryPanel=React.createClass({
 		var out=['<div data-term="'+term+'">','<span class="dictentry">'+term+'</span>'];
 		for (var i=0;i<lines.length;i++) {
 			var line=lines[i];
-			if (line[0]=="{") {
+			if (this.state.enableMarkup && line[0]=="{"){
 				var	at=line.indexOf("}");
 				line='<button>'+line.substring(1,at)+"</button><span>"+line.substr(at+1)+"</span>";
 			}

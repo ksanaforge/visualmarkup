@@ -1,6 +1,6 @@
 module.exports=require("reflux").createActions([
 		"loadTagsets",
-		"setTagset",
+		"setTagsetName",
 		"setSelection",
 		"tokenPositionUpdated",
 		"createMarkup",
