@@ -16,6 +16,8 @@ var Controlpanel=React.createClass({
 	}
 	,reset:function() {
 		actions.clearAllMarkups();
+		this.setState({message:"All Markup Clear",messagetype:"success"});
+		setTimeout(this.clearMessage,5000);	
 	}
 	,clearMessage:function() {
 		this.setState({message:""});

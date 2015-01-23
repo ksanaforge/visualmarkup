@@ -18,7 +18,7 @@ var Controls=React.createClass({
 		    </div>
 	}
 });
-var viewid=0;
+var viewid="sutra";
 var Refertext=React.createClass({
 	mixins:[Reflux.listenTo(require("./store_text").ds,"sutratext")],
 	getInitialState:function() {

@@ -12,5 +12,6 @@ module.exports=require("reflux").createActions([
 		"markupUpdated",
 		"setVisibleTags",
 		"clearAllMarkups",
-		"saveMarkups"
+		"saveMarkups",
+		"registerViewid"
 ]);

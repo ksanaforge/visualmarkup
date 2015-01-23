@@ -3,7 +3,7 @@ var actions=require("./actions_text");
 var actions_markup=require("./actions_markup");
 var domhelper=require("./domhelper");
 var Markable=require("./markable");
-var viewid=1;
+var viewid="lecture";
 var Controls=React.createClass({
 	nextpara:function() {
 		actions.nextLecturePara();

@@ -1,6 +1,7 @@
 var Reflux=require("reflux");
 var store=require("./store_trait");
 var store_tagset=require("./store_tagset");
+var store_selection=require("./store_selection");
 var actions=require("./actions_markup");
 var trait_templates={
 	"partofspeech":require("./trait_partofspeech")
@@ -10,7 +11,7 @@ var trait_templates={
 
 
 var Trait=React.createClass({
-	mixins:[Reflux.listenTo(store,"onData")],
+	mixins:[Reflux.listenTo(store,"onData"),Reflux.listenTo(store_selection,"onSelection")],
 	getInitialState:function(){
 		return {template:null,modified:false}
 	}
@@ -37,12 +38,20 @@ var Trait=React.createClass({
 	,onChanged:function(){
 		this.setState({modified:true});
 	}
+	,onSelection:function(selections){
+
+	}
+	,renderSelection:function() {
+		//
+	}
 	,renderTemplate:function() {
 		if (this.state.template) {
 			var ele=React.createFactory(this.state.template);
-			var template=ele({ref:"template",onChanged:this.onChanged,trait:this.state.markup[2],reset:this.reset});
-			this.reset=false;
+			var template=ele({ref:"template",onChanged:this.onChanged,trait:this.state.markup[2],revert:this.revert});
+			this.revert=false;
 			return template;
+		} else {
+			return this.renderSelection();
 		}
 	}
 	,renderControls:function(){
@@ -50,7 +59,7 @@ var Trait=React.createClass({
 			var disabled=!this.state.modified?" disabled":"";
 			var disabled_delete=!this.state.modified?"":" disabled";
 			return <div>
-					<button onClick={this.resetmarkup} title="Discard changes" className={"btn btn-warning"+disabled}>Reset</button>
+					<button onClick={this.revertmarkup} title="Discard changes" className={"btn btn-warning"+disabled}>Revert</button>
 					<button onClick={this.deletemarkup} title="Delete this markup"  className={"btn btn-danger"+disabled_delete}>Delete</button>
 				   </div>
 		}
@@ -58,8 +67,8 @@ var Trait=React.createClass({
 	,deletemarkup:function() {
 		actions.deleteMarkup(this.state.viewid,this.state.nmarkup);
 	}
-	,resetmarkup:function() {
-		this.reset=true;
+	,revertmarkup:function() {
+		this.revert=true;
 		this.setState({modified:false});
 	}
 	,render:function() {

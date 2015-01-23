@@ -7,7 +7,7 @@ var testmarkups=require("./testmarkups");
 var persistent=require("./persistent");
 var layoutMarkups=function(viewpositions,viewmarkups, visibletags) {
 	var out=[];
-	for (var i=0;i<viewmarkups.length;i++) {
+	for (var i in viewmarkups) {
 		var markups=viewmarkups[i].markups;
 		var positions=viewpositions[i];
 		if (!positions) continue ;
@@ -28,7 +28,8 @@ var store_trait=require("./store_trait");
 
 var store_markup=Reflux.createStore({
 	listenables: [actions]
-	,viewmarkups:[]
+	,viewmarkups:{}
+	,viewIDs:[]
 	,viewpositions:[]
 	,visibletags:[]
 	,onMarkupUpdated:function(){
@@ -41,13 +42,18 @@ var store_markup=Reflux.createStore({
 			return !(m[0]==vpos && exclusive.indexOf(m[2].tag)>-1);
 		});
 	}
-	,dockeys:function() {
-		return ["0_"+this.tagsetname,"1_"+this.tagsetname];
+	,onRegisterViewid:function(viewid) {
+		if (this.viewIDs.indexOf(viewid)==-1) this.viewIDs.push(viewid);
+	}
+	,docIDs:function() {
+		return this.viewIDs.map(function(v){return v+"."+this.tagsetname},this);
 	}
 	,loadMarkups:function() {
-		persistent.loadMarkups(this.dockeys(),function(content){
+		var keys=this.docIDs();
+		persistent.loadMarkups(keys,function(content){
 			for (var i=0;i<content.length;i++){
-				this.viewmarkups[i]=content[i];
+				var viewid=keys[i].substr(0,keys[i].indexOf("."));
+				this.viewmarkups[viewid  ]=content[i];
 			}
 			this.onMarkupUpdated();
 		},this);		
@@ -112,18 +118,25 @@ var store_markup=Reflux.createStore({
 		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups,this.visibletags);
 		if (drawables) this.trigger(drawables);
 	}
+	,markupsArray:function() { // pouchdb needs array of docs
+		var out=[];
+		for (var i in this.viewmarkups){
+			out.push(this.viewmarkups[i]);
+		}
+		return out;
+	}
 	,onSaveMarkups:function(cb,context){
-		persistent.saveMarkups(this.viewmarkups , cb,context);
+		persistent.saveMarkups(this.markupsArray(), cb,context);
 	}
 	,onClearAllMarkups:function(){
-		persistent.resetMarkups(this.viewmarkups);
+		persistent.resetMarkups(this.markupsArray());
 		this.onMarkupUpdated();
 	}
 	,getRawMarkup:function() {
 		return this.viewmarkups;
 	}
 	,setRawMarkup:function(content) {
-		persistent.resetMarkups(this.viewmarkups);
+		persistent.resetMarkups(this.markupsArray());
 		for (var i=0;i<content.length;i++){
 			this.viewmarkups[i]=content[i];
 		}
