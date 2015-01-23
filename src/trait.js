@@ -38,11 +38,21 @@ var Trait=React.createClass({
 	,onChanged:function(){
 		this.setState({modified:true});
 	}
-	,onSelection:function(selections){
-
+	,onSelection:function(viewselections){
+		this.setState({viewselections:viewselections});
 	}
 	,renderSelection:function() {
-		//
+		var out=[];
+		for (var view in this.state.viewselections) {
+			var selections=this.state.viewselections[view];
+			if (selections.length) out.push(<div>View:{view}</div>)
+			for (var i=0;i<selections.length;i++) {
+				var sel=selections[i];
+				out.push(<div>{sel[0]+"-"+sel[1]}</div>);
+			}
+			out.push(<hr/>)
+		}
+		return out;
 	}
 	,renderTemplate:function() {
 		if (this.state.template) {
