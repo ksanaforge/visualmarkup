@@ -4,7 +4,7 @@ var trait_mixin={
 		,onChanged:React.PropTypes.func
 	}
 	,componentWillReceiveProps:function(nextprops) {
-		if (nextprops.trait!=this.props.trait) this.copyValue(nextprops);
+		if (nextprops.trait!=this.props.trait || nextprops.reset) this.copyValue(nextprops);
 	}
 	,componentDidMount:function() {
 		this.copyValue(this.props);

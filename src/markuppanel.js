@@ -9,10 +9,7 @@ var MarkupPanel=React.createClass({
 	},
 	render:function(){
 		return <div className="markuppanel">
-			<div>
-			<div className="col-md-1">LOGO</div>
-			<div className="col-md-7"><TagsetTab/></div>
-			</div>
+			<TagsetTab/>
 		</div>
 	}
 });

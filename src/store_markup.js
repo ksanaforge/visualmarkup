@@ -118,7 +118,17 @@ var store_markup=Reflux.createStore({
 	,onClearAllMarkups:function(){
 		persistent.resetMarkups(this.viewmarkups);
 		this.onMarkupUpdated();
-	}	
+	}
+	,getRawMarkup:function() {
+		return this.viewmarkups;
+	}
+	,setRawMarkup:function(content) {
+		persistent.resetMarkups(this.viewmarkups);
+		for (var i=0;i<content.length;i++){
+			this.viewmarkups[i]=content[i];
+		}
+		this.onMarkupUpdated();
+	}
 });
 
 module.exports=store_markup;

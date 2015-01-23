@@ -7,54 +7,22 @@ var trait_templates={
 	,"readerexpress":require("./trait_readerexpress")
 	,"authorexpress":require("./trait_authorexpress")
 }
-var savecaption="Write To DB";
-var savedcaption="Markups Written.";
-var MarkupControls=React.createClass({
-	mixins:[Reflux.listenTo(require("./store_markup"),"onData")]
-	,getInitialState:function(){
-		return {savecaption:savecaption,dangerzone:false};
-	}
-	,reset:function() {
-		actions.clearAllMarkups();
-	}
-	,onData:function() {
 
-	}
-	,restoresavecapcation:function() {
-		this.setState({savecaption:savecaption});
-	}
-	,save:function() {
-		actions.saveMarkups(function(){
-			this.setState({savecaption:savedcaption});
-			setTimeout(this.restoresavecapcation,3000);
-		},this);
-	},
-	renderDanger:function() {
-		if (this.state.dangerzone) {
-			return <button onClick={this.reset} className="btn btn-danger">Delete all markups</button>	
-		}	
-	}
-	,setDanger:function(e) {
-		this.setState({dangerzone:e.target.checked});
-	}
-	,render:function() {
-		return <div>
-			<button onClick={this.save} className="btn btn-success">{this.state.savecaption}</button>
-			<span>
-    			<label>
-      			danger<input type="checkbox" onChange={this.setDanger}/>
-    			</label>
-  			</span>
-			{this.renderDanger()}
-		</div>
-	}
-});
+
 var Trait=React.createClass({
 	mixins:[Reflux.listenTo(store,"onData")],
 	getInitialState:function(){
-		return {template:null}
+		return {template:null,modified:false}
+	}
+	,commitChange:function() {
+		if (!this.state.modified || !this.state.markup) return;
+		var markup=this.state.markup;
+		markup[2]=this.refs.template.getValue();
+		actions.saveMarkups(this.state.viewid,this.state.nmarkup,markup);
 	}
 	,onData:function(viewid,nmarkup,markup){
+		if (this.state.markup) this.commitChange();
+
 		if (!markup) {
 			this.setState({template:null,markup:null});	
 			return;
@@ -70,35 +38,34 @@ var Trait=React.createClass({
 		this.setState({modified:true});
 	}
 	,renderTemplate:function() {
-		if (!this.state.template) {
-			return <MarkupControls/>
-		} else {
+		if (this.state.template) {
 			var ele=React.createFactory(this.state.template);
-			return ele({ref:"template",onChanged:this.onChanged,trait:this.state.markup[2]});			
+			var template=ele({ref:"template",onChanged:this.onChanged,trait:this.state.markup[2],reset:this.reset});
+			this.reset=false;
+			return template;
+		}
+	}
+	,renderControls:function(){
+		if (this.state.template) {
+			var disabled=!this.state.modified?" disabled":"";
+			var disabled_delete=!this.state.modified?"":" disabled";
+			return <div>
+					<button onClick={this.resetmarkup} title="Discard changes" className={"btn btn-warning"+disabled}>Reset</button>
+					<button onClick={this.deletemarkup} title="Delete this markup"  className={"btn btn-danger"+disabled_delete}>Delete</button>
+				   </div>
 		}
 	}
 	,deletemarkup:function() {
 		actions.deleteMarkup(this.state.viewid,this.state.nmarkup);
 	}
-	,savemarkup:function(e) {
-		var markup=this.state.markup;
-		markup[2]=this.refs.template.getValue();
-		actions.saveMarkups(this.state.viewid,this.state.nmarkup,markup);
-		this.setState({modified:false,markup:markup});
-	}
-	,renderControls:function() {
-		if (!this.state.template) return;
-		var disabled=!this.state.modified?" disabled":"";
-		var disabled_delete=!this.state.modified?"":" disabled";
-		return <div>
-				<button onClick={this.deletemarkup} className={"btn btn-danger"+disabled_delete}>Delete</button>
-				<button onClick={this.savemarkup} className={"btn btn-success"+disabled}>Save</button>
-			   </div>
+	,resetmarkup:function() {
+		this.reset=true;
+		this.setState({modified:false});
 	}
 	,render:function() {
 		return <div className="traitpanel">
-					{this.renderTemplate()}
 					{this.renderControls()}
+					{this.renderTemplate()}
 			</div>
 	}
 });

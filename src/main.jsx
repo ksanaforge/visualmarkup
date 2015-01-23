@@ -5,6 +5,7 @@ var KepanPanel=require("./kepanpanel");
 var Markuplayer=require("./markuplayer");
 var MarkupPanel=require("./markuppanel");
 var Trait=require("./trait");
+var ControlPanel=require("./controlpanel");
 //var pageScrollMixin=require("ksana2015-components").pageScrollMixin; 
 	
 
@@ -44,7 +45,17 @@ var maincomponent = React.createClass({
 				<LectureText/>
 			</div>
 			<div className="dictpanel col-md-3">
-				<Trait/>
+				<div className="panel panel-warning">
+					<div className="panel-heading text-center">控制台</div>
+					<div className="panel-body"><ControlPanel/></div>
+				</div>
+				
+				<div className="panel panel-warning">
+					<div className="panel-heading text-center">標記屬性</div>
+					<div className="panel-body"><Trait/></div>
+				</div>
+				
+
 			</div>
 		</div>;
 	}
