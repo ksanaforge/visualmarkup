@@ -1,6 +1,6 @@
 var action_markups=require("reflux").createActions([
 		"loadTagsets",
-		"setTagsetName",
+		"setActiveTagset",
 		"setSelection",
 		"tokenPositionUpdated",
 		"createMarkup",
@@ -16,6 +16,7 @@ var action_markups=require("reflux").createActions([
 		"registerViewid",
 		"setVirtualMarkup",
 		"addHiddenView",
-		"removeHiddenView"
+		"removeHiddenView",
+		"doTag"
 ]);
 module.exports=action_markups;

@@ -1,22 +1,19 @@
 var Reflux=require("reflux");
+
 var actions=require("./actions_markup");
 var store_tagset=Reflux.createStore({
 	listenables: [actions]
-	,onLoadTagsets:function(){
-		this.tagsets=require("./tagsets");
-		this.trigger(this.tagsets);
+	,onSetActiveTagset:function(tagsetname,tagset){
+		this.tagsetname=tagsetname;
+		this.tagset=tagset;
+		this.trigger(tagsetname,tagset); 
+	},
+	getTagsetName:function() {
+		return this.tagsetname;
+	},
+	onDoTag:function(n) {
+		console.log("do tag n",n,this.tagset[n].name);
+		//add markup
 	}
-	,tagsetOfTag:function(tag) {
-		for (var i=0;i<this.tagsets.length;i++){
-			var tagset=this.tagsets[i].tagset;
-			for (var j=0;j<tagset.length;j++) {
-				var tagdef=tagset[j];
-				if (tagdef.name==tag) return this.tagsets[i].name;
-			}
-		};
-		return null;
-	}
-	,
-
 });
 module.exports=store_tagset;

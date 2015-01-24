@@ -161,6 +161,7 @@ var store_markup=Reflux.createStore({
 		}
 		this.onMarkupUpdated();
 	}
+
 });
 
 module.exports=store_markup;

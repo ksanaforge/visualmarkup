@@ -1,6 +1,6 @@
 var Reflux=require("reflux");
 var store=require("./store_trait");
-var store_tagset=require("./store_tagset");
+var store_tagsets=require("./store_tagsets");
 var store_selection=require("./store_selection");
 var actions=require("./actions_markup");
 var trait_templates={
@@ -29,7 +29,7 @@ var Trait=React.createClass({
 			return;
 		}
 
-		var group=store_tagset.tagsetOfTag(markup[2].tag);
+		var group=store_tagsets.tagsetOfTag(markup[2].tag);
 		if (!group) {
 			return;
 		}

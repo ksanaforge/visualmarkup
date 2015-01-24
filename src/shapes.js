@@ -21,13 +21,14 @@ var drawDoubt=function(rect,ctx) {
 	//ctx.fillStyle="red";
 	//ctx.fillRect(rect[0],rect[3],rect[2]-rect[0],3);
 }
-var PartOfSpeechColor={noun:"#F33",verb:"#993",adjective:"#66F",
-pronoun:"#7F7",preposition:"#383",conjunction:"#F0F"};
+var PartOfSpeechColor={noun:"#F73",verb:"#993",adjective:"#66F",
+pronoun:"#7F3",preposition:"#3F3",conjunction:"#F0F",adverb:"#2FF"
+,numeral:"#3F7",classifier:"#F07",particle:"#0FF"};
 var drawPartOfSpeech=function(rect,ctx,tag) {
 	ctx.beginPath();
 	ctx.strokeStyle=PartOfSpeechColor[tag];
-	ctx.setLineDash([]);
-	ctx.lineWidth=3;
+	ctx.setLineDash([2]);
+	ctx.lineWidth=2;
 	ctx.rect(rect[0],rect[1],rect[2]-rect[0],rect[3]-rect[1]);
 	ctx.stroke();
 }
@@ -47,16 +48,22 @@ var drawReaderExpress=function(rect,ctx,tag) {
 }
 
 var painters={
-	important:drawImportant,doubt:drawDoubt, 
-	important2:drawReaderExpress,
-	noun:drawPartOfSpeech, 
-	verb:drawPartOfSpeech,
-	adjective:drawPartOfSpeech,
-	adverb:drawPartOfSpeech,
-	particle:drawPartOfSpeech,
-	pronoun:drawPartOfSpeech,
-	preposition:drawPartOfSpeech,
-	conjunction:drawPartOfSpeech};
+	important:drawImportant
+	,doubt:drawDoubt
+	,important2:drawReaderExpress
+	,noun:drawPartOfSpeech 
+	,verb:drawPartOfSpeech
+	,adjective:drawPartOfSpeech
+	,adverb:drawPartOfSpeech
+	,particle:drawPartOfSpeech
+	,pronoun:drawPartOfSpeech
+	,preposition:drawPartOfSpeech
+	,conjunction:drawPartOfSpeech
+	,numeral:drawPartOfSpeech
+	,classifier:drawPartOfSpeech
+	,particle:drawPartOfSpeech
+	}
+;
 
 var draw=function(tag,rect,ctx) {
 	var painter=painters[tag];

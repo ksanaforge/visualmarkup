@@ -4,15 +4,19 @@ var Markuplayer=require("./markuplayer");
 var Trait=require("./trait");
 var ControlPanel=require("./controlpanel");
 var LeftPanel=require("./leftpanel");
+var keyboardshortcut=require("./keyboardshortcut");
 //var pageScrollMixin=require("ksana2015-components").pageScrollMixin; 
 
 var maincomponent = React.createClass({
 //	mixins:[pageScrollMixin],
 	componentDidMount:function() {
 		var that=this;
-		window.addEventListener('resize', function(event){
+		window.addEventListener('resize', function(e){
 		  that.forceUpdate();
 		});
+		window.addEventListener('keyup',function(e){
+			if (keyboardshortcut(e)) e.preventDefault();
+		})
 	},
 	onScrollEnd:function() {
 		this.forceUpdate();

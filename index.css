@@ -3,6 +3,7 @@ body{overflow:hidden;}
 .sutratext {font-size:200%;font-family: DFKai-SB}
 .lecturetext {font-size:175%}
 .markupdesc {font-size:175%}
+.markupbutton {font-size:175%}
 .panel {background-color:rgba(0, 0, 0, 0)} /* overwrite bootstrap , otherwise markup cannot be shown */
 .kepanview  {font-size:150%;}
 .dictionarytext  {font-size:150%;}

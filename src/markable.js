@@ -11,19 +11,18 @@ var textselection=require("./textselection");
 var Markuptable=React.createClass({
 	getInitialState:function() {
 		return {ready:false,scrolling:false,selections:[]};
-	},
-	propTypes:{
+	}
+	,propTypes:{
 		text:React.PropTypes.array.isRequired
 		,viewid:React.PropTypes.string.isRequired
-	},
-	onScrollStart:function() {
+	}
+	,onScrollStart:function() {
 
-	},
-	onScrollEnd:function() {
+	}
+	,onScrollEnd:function() {
 		this.updatePosition();
-	},
-	
-	updatePosition:function(){
+	}	
+	,updatePosition:function(){
 		var children=this.getDOMNode().children[0].children;
 		var out={};
 		for (var i=0;i<children.length;i++) {
@@ -34,17 +33,17 @@ var Markuptable=React.createClass({
 			}
 		}
 		actions.tokenPositionUpdated( out, this.props.viewid);
-	},
-	componentWillReceiveProps:function(nextProps) {
+	}
+	,componentWillReceiveProps:function(nextProps) {
 		if (nextProps.text!=this.props.text) this.setState({ready:false});
-	},
-	componentDidUpdate:function(){
+	}
+	,componentDidUpdate:function(){
 		if (!this.state.ready) this.updatePosition();
-	},
-	componentDidMount:function() {
+	}
+	,componentDidMount:function() {
 		actions.registerViewid(this.props.viewid);
-	},
-	mouseUp:function(e) {
+	}
+	,mouseUp:function(e) {
       var sel=textselection();  
       var selections=this.state.selections;
       if (!sel) return;
@@ -60,21 +59,21 @@ var Markuptable=React.createClass({
       }
       this.setState({selections:selections});
       actions.setSelection(selections , this.props.viewid);
-	},
-	mouseOut:function() {
+	}
+	,mouseOut:function() {
 
-	},
-	mouseMove:function() {
+	}
+	,mouseMove:function() {
 
-	},
-	inSelection:function(idx) {
+	}
+	,inSelection:function(idx) {
 		for (var i=0;i<this.state.selections.length;i++) {
 			var sel=this.state.selections[i];
 			if (idx>=sel[0] && idx<sel[0]+sel[1]) return true;
 		}
 		return false;
-	},
-	renderChar:function(item,idx){
+	}
+	,renderChar:function(item,idx){
 		var cls="";
 		if (this.inSelection(item[1])) cls="selected";
 		return <span className={cls} key={"c"+idx} data-n={item[1]}>{item[0]}</span>

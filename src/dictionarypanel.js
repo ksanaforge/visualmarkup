@@ -1,6 +1,6 @@
 var Reflux=require("reflux");
 var store=require("./store_text").dictionary;
-var store_tagsetname=require("./store_tagsetname");
+var store_tagset=require("./store_tagset");
 var actions_text=require("./actions_text");
 var actions_markup=require("./actions_markup");
 var SearchDictionary=React.createClass({
@@ -21,7 +21,7 @@ var SearchDictionary=React.createClass({
 var partofspeechtag={"動":"verb","副":"adverb","形":"adjective","名":"noun","助":"particle"
 ,"介":"preposition","連":"conjunction","代":"pronoun"};
 var DictionaryPanel=React.createClass({
-	mixins:[Reflux.listenTo(store,"onData"),Reflux.listenTo(store_tagsetname,"onTagsetname")],
+	mixins:[Reflux.listenTo(store,"onData"),Reflux.listenTo(store_tagset,"onTagsetname")],
 	getInitialState:function() {
 		return {data:[],enableMarkup:false}
 	},

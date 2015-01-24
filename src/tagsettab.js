@@ -1,5 +1,5 @@
 var Choices=require("ksana2015-components").choices;
-var store=require("./store_tagset");
+var store=require("./store_tagsets");
 var actions=require("./actions_markup");
 var Reflux=require("reflux");
 var viewID= "markuppanel";
@@ -48,7 +48,7 @@ var TagsetTab=React.createClass({
 	}
 	,setVisibility:function(selected,norefresh) {
 		var tagset=this.getTagset(selected);
-		actions.setTagsetName(this.state.tagset[selected].name);
+		actions.setActiveTagset(this.state.tagset[selected].name,tagset);
 		actions.setVisibleTags(tagset.map(function(t){return t.name}),norefresh);
 	}
 	,getTagset:function(n) {
@@ -76,8 +76,8 @@ var TagsetTab=React.createClass({
 				<input type="checkbox" checked={this.state.displayonoff} onChange={this.setDisplay}/>display
 			</label>
 			<Choices ref="markupchoice" data={this.getTagset(this.state.selected)} 
-				onSelect={this.onSelectTag} type={this.state.displayonoff?"checkbox":"hidden"} 
-				checked={true} linebreak={true} labelfor={true} autovpos={true} vposInItem={this.vposInItem}/>
+				onSelect={this.onSelectTag} type={this.state.displayonoff?"checkbox":"button"} 
+				checked={true} linebreak={true} autovpos={true} vposInItem={this.vposInItem}/>
 		</div>
 	}
 });
