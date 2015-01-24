@@ -8,7 +8,7 @@ var trait_templates={
 	,"readerexpress":require("./trait_readerexpress")
 	,"authorexpress":require("./trait_authorexpress")
 }
-
+var MarkupSearch=require("./markupsearch");
 
 var Trait=React.createClass({
 	mixins:[Reflux.listenTo(store,"onData"),Reflux.listenTo(store_selection,"onSelection")],
@@ -25,21 +25,23 @@ var Trait=React.createClass({
 		if (this.state.markup) this.commitChange();
 
 		if (!markup) {
-			this.setState({template:null,markup:null});	
+			this.setState({template:null,markup:null,modified:false});	
 			return;
 		}
+
 		var group=store_tagset.tagsetOfTag(markup[2].tag);
 		if (!group) {
 			return;
 		}
 		var template=trait_templates[group];
-		this.setState({template:template,markup:markup,viewid:viewid,nmarkup:nmarkup});
+		this.setState({template:template,markup:markup,viewid:viewid,nmarkup:nmarkup,modified:false});
 	}
 	,onChanged:function(){
 		this.setState({modified:true});
 	}
 	,onSelection:function(viewselections){
-		this.setState({viewselections:viewselections});
+		this.commitChange();
+		this.setState({viewselections:viewselections,template:null,markup:null,modified:false});
 	}
 	,renderSelection:function() {
 		var out=[];
@@ -69,8 +71,11 @@ var Trait=React.createClass({
 			var disabled=!this.state.modified?" disabled":"";
 			var disabled_delete=!this.state.modified?"":" disabled";
 			return <div>
+					<div className="pull-right">
 					<button onClick={this.revertmarkup} title="Discard changes" className={"btn btn-warning"+disabled}>Revert</button>
 					<button onClick={this.deletemarkup} title="Delete this markup"  className={"btn btn-danger"+disabled_delete}>Delete</button>
+					</div>
+					<MarkupSearch/>
 				   </div>
 		}
 	}
@@ -83,8 +88,8 @@ var Trait=React.createClass({
 	}
 	,render:function() {
 		return <div className="traitpanel">
-					{this.renderControls()}
 					{this.renderTemplate()}
+					{this.renderControls()}
 			</div>
 	}
 });

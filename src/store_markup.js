@@ -5,9 +5,10 @@ var Reflux=require("reflux");
 var actions=require("./actions_markup");
 var testmarkups=require("./testmarkups");
 var persistent=require("./persistent");
-var layoutMarkups=function(viewpositions,viewmarkups, visibletags) {
+var layoutMarkups=function(viewpositions,viewmarkups, visibletags, hiddenviews) {
 	var out=[];
 	for (var i in viewmarkups) {
+		if (hiddenviews && hiddenviews.indexOf(i)>-1) continue;
 		var markups=viewmarkups[i].markups;
 		var positions=viewpositions[i];
 		if (!positions) continue ;
@@ -28,12 +29,13 @@ var store_trait=require("./store_trait");
 
 var store_markup=Reflux.createStore({
 	listenables: [actions]
-	,viewmarkups:{}
-	,viewIDs:[]
-	,viewpositions:[]
-	,visibletags:[]
+	,viewmarkups:{}    // all markups to be drawn, including on disk and virtual
+	,viewIDs:[]        // markable view id
+	,hiddenViews:[]     // this view doesn't display
+	,viewpositions:{}  // span positions in each view
+	,visibletags:[]    // only tag in this array are visible
 	,onMarkupUpdated:function(){
-		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups,this.visibletags);
+		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups,this.visibletags,this.hiddenViews);
 		if (drawables) this.trigger(drawables);
 		actions.cancelEdit();
 	}
@@ -113,30 +115,47 @@ var store_markup=Reflux.createStore({
 		opts=opts||{};
 		if (opts.forceUpdate) this.onMarkupUpdated();
 	}
-	,onTokenPositionUpdated:function(positions,nview) {
-		this.viewpositions[nview]=positions;
-		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups,this.visibletags);
+	,onTokenPositionUpdated:function(positions,viewid) {
+		this.viewpositions[viewid]=positions;
+		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups,this.visibletags,this.hiddenViews);
 		if (drawables) this.trigger(drawables);
 	}
-	,markupsArray:function() { // pouchdb needs array of docs
+	,onAddHiddenView:function(viewid) {
+		if (viewid && this.hiddenViews.indexOf(viewid)==-1) {
+			this.hiddenViews.push(viewid);
+			this.onMarkupUpdated();
+		}
+	}
+	,onRemoveHiddenView:function(viewid){
+		var at=this.hiddenViews.indexOf(viewid);
+		if (at>-1) {
+			this.hiddenViews.splice(at,1);
+			this.onMarkupUpdated();
+		}
+	}
+	,markupsArrayForSerialize:function() { // pouchdb needs array of docs
 		var out=[];
 		for (var i in this.viewmarkups){
-			out.push(this.viewmarkups[i]);
+			if (this.viewIDs.indexOf(i)>-1) out.push(this.viewmarkups[i]);
 		}
 		return out;
 	}
 	,onSaveMarkups:function(cb,context){
-		persistent.saveMarkups(this.markupsArray(), cb,context);
+		persistent.saveMarkups(this.markupsArrayForSerialize(), cb,context);
 	}
 	,onClearAllMarkups:function(){
-		persistent.resetMarkups(this.markupsArray());
+		persistent.resetMarkups(this.markupsArrayForSerialize());
 		this.onMarkupUpdated();
 	}
 	,getRawMarkup:function() {
 		return this.viewmarkups;
 	}
+	,onSetVirtualMarkup:function( markups,viewid) {// virtual markup will not save to db
+		this.viewmarkups[viewid]={markups:markups};
+		//this.onMarkupUpdated();
+	}
 	,setRawMarkup:function(content) {
-		persistent.resetMarkups(this.markupsArray());
+		persistent.resetMarkups(this.markupsArrayForSerialize());
 		for (var i=0;i<content.length;i++){
 			this.viewmarkups[i]=content[i];
 		}

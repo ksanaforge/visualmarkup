@@ -2,6 +2,7 @@ var Choices=require("ksana2015-components").choices;
 var store=require("./store_tagset");
 var actions=require("./actions_markup");
 var Reflux=require("reflux");
+var viewID= "markuppanel";
 var TagsetTab=React.createClass({
 	mixins:[Reflux.listenTo(store,"onTagSet")],
 	propTypes:{
@@ -11,11 +12,28 @@ var TagsetTab=React.createClass({
 		this.setVisibility(0,true);
 	}
 	,getInitialState:function(){
-		return {selected:0,tagset:[]};
+		return {selected:0,tagset:[],displayonoff:false};
 	}
 	,onSelect:function(n,perv) {
 		this.setState({selected:n});
 		this.setVisibility(n);
+	}
+	,updatePosition:function(children) {
+		var out={};
+		for (var i=0;i<children.length;i++) {
+			var spans=children[i].getElementsByTagName("span");
+			for (var j=0;j<spans.length;j++) {
+				var rect=spans[j].getBoundingClientRect();
+				var vpos=spans[j].dataset.vpos;
+				if (vpos){
+					out[parseInt(vpos)]=[rect.left,rect.top,rect.right,rect.bottom];	
+				}
+			}
+		}
+		actions.tokenPositionUpdated( out,viewID);
+	}
+	,componentDidUpdate:function() {
+		this.updatePosition(this.refs.markupchoice.getDOMNode().children);
 	}
 	,componentDidMount:function() {
 		actions.loadTagsets();
@@ -37,11 +55,29 @@ var TagsetTab=React.createClass({
 		var selectedset=this.state.tagset[n];
 		return selectedset?selectedset.tagset:[];
 	}
+	,setDisplay:function(e) {
+		this.setState({displayonoff:e.target.checked});
+	}
+	,convertToMarkup:function(arr) {
+		return arr.map(function(item){
+			var payload={tag:item[2]};
+			if (item[3]) payload.shadow=true;
+			return [item[0],item[1],payload];
+		});
+	}
+	,vposInItem:function(arr) {
+		var markups=this.convertToMarkup(arr);
+		actions.setVirtualMarkup(markups,viewID);
+	}
 	,render:function() {
-		//this.disableRandom(tagset);
 		return <div className="tagsetpanel">
 			<Choices data={this.state.tagset} onSelect={this.onSelect} type="dropdown"/>
-			<Choices data={this.getTagset(this.state.selected)} onSelect={this.onSelectTag} type="checkbox" checked={true}/>
+			<label className="pull-right">
+				<input type="checkbox" checked={this.state.displayonoff} onChange={this.setDisplay}/>display
+			</label>
+			<Choices ref="markupchoice" data={this.getTagset(this.state.selected)} 
+				onSelect={this.onSelectTag} type={this.state.displayonoff?"checkbox":"hidden"} 
+				checked={true} linebreak={true} labelfor={true} autovpos={true} vposInItem={this.vposInItem}/>
 		</div>
 	}
 });

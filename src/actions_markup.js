@@ -13,6 +13,9 @@ var action_markups=require("reflux").createActions([
 		"setVisibleTags",
 		"clearAllMarkups",
 		"saveMarkups",
-		"registerViewid"
+		"registerViewid",
+		"setVirtualMarkup",
+		"addHiddenView",
+		"removeHiddenView"
 ]);
 module.exports=action_markups;

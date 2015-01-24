@@ -25,5 +25,7 @@ var Trait_partofspeech=React.createClass({
 			</div>
 	}
 });
-
+/*
+  dropdown user created defination
+*/ 
 module.exports=Trait_partofspeech;

@@ -1,15 +1,15 @@
 /*markup defination file*/
 var tagset_partofspeech=[
-  {label:"代名詞", name:"pronoun", type:"markinternal"} 
-  ,{label:"名詞", name:"noun", type:"marksimple"} 
-  ,{label:"動詞", name:"verb", type:"marksimple"} 
-  ,{label:"副詞", name:"adverb",type:"marksimple"}  
-  ,{label:"形容詞", name:"adjective",type:"marksimple"}  
-  ,{label:"助詞", name:"particle",type:"marksimple"}    
-  ,{label:"連接詞", name:"conjunction", type:"marksimple" } 
-  ,{label:"介詞", name:"preposition", type:"marksimple"  } 
-  ,{label:"數詞", name:"numeral",type:"marksimple"}  
-  ,{label:"量詞", name:"classifier",type:"marksimple"}  
+  {label:"代名詞", name:"pronoun", type:"markinternal", desc:"：你、我、他"} 
+  ,{label:"名詞", name:"noun", type:"marksimple", desc:"：桌、椅"} 
+  ,{label:"動詞", name:"verb", type:"marksimple", desc:"：行、住、坐、臥"} 
+  ,{label:"副詞", name:"adverb",type:"marksimple", desc:"：快、慢"}  
+  ,{label:"形容詞", name:"adjective",type:"marksimple", desc:"：冷、熱"}  
+  ,{label:"助詞", name:"particle",type:"marksimple", desc:"：很"}    
+  ,{label:"連接詞", name:"conjunction", type:"marksimple", desc:"：及"} 
+  ,{label:"介詞", name:"preposition", type:"marksimple" , desc:"："} 
+  ,{label:"數詞", name:"numeral",type:"marksimple", desc:"：百、千、萬"}  
+  ,{label:"量詞", name:"classifier",type:"marksimple", desc:"：匹、頭"}  
 
 ];
 var tagset_punctuation=[
