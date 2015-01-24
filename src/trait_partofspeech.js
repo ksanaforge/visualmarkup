@@ -1,5 +1,9 @@
 var Trait_partofspeech=React.createClass({
 	mixins:[require("./trait_mixin")]
+
+	,onChanged:function() {
+		this.refs.source.getDOMNode().value=this.state.username;
+	}
 	,render:function() {
 		return <div>
 			<div className="form-group">

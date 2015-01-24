@@ -1,4 +1,4 @@
-module.exports=require("reflux").createActions([
+var action_markups=require("reflux").createActions([
 		"loadTagsets",
 		"setTagsetName",
 		"setSelection",
@@ -15,3 +15,4 @@ module.exports=require("reflux").createActions([
 		"saveMarkups",
 		"registerViewid"
 ]);
+module.exports=action_markups;

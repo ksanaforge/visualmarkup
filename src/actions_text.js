@@ -1,4 +1,4 @@
-module.exports=require("reflux").createActions([
+var action_texts=require("reflux").createActions([
 		"getKepan",
 		"openDSL",
 		"openDS",
@@ -13,3 +13,4 @@ module.exports=require("reflux").createActions([
 		"prevLecturePara",
 		"goKepanId"
 ]);
+module.exports=action_texts;

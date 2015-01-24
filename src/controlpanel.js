@@ -3,6 +3,7 @@ var savecaption="Save";
 var savedcaption="Markups Written.";
 var store=require("./store_markup");
 var actions=require("./actions_markup");
+var SetUser=require("./setuser"); 
 var  utf8_to_b64= function( str ) {
     return btoa(unescape(encodeURIComponent( str )));
 };
@@ -72,7 +73,7 @@ var Controlpanel=React.createClass({
 
 	,render:function() {
 		return <div>
-			
+			<SetUser/>
 			<button onClick={this.save} className="btn btn-success">{this.state.savecaption}</button>
 			<span>
     			<label>
