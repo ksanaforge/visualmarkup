@@ -5,7 +5,7 @@ var store_selection=Reflux.createStore({
 	,selections:{}
 	,onSetSelection:function(selections,viewid) {
 		this.selections[viewid]=selections;
-		this.trigger(this.selections);
+		this.trigger(this.selections,viewid);
 	}
 	,getSelections:function(){
 		return this.selections;

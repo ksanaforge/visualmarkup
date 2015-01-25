@@ -11,6 +11,7 @@ var action_texts=require("reflux").createActions([
 		"prevSutraPara",
 		"nextLecturePara",
 		"prevLecturePara",
-		"goKepanId"
+		"goKepanId",
+		"getTextByVpos"
 ]);
 module.exports=action_texts;

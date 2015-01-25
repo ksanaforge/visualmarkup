@@ -18,6 +18,8 @@ var action_markups=require("reflux").createActions([
 		"addHiddenView",
 		"removeHiddenView",
 		"doTag",
-		"clearMarkupInSelection"
+		"clearMarkupInSelection",
+		"nextMarkup",
+		"prevMarkup"
 ]);
 module.exports=action_markups;

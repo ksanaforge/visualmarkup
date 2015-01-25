@@ -71,7 +71,7 @@ var TagsetTab=React.createClass({
 	}
 	,render:function() {
 		return <div className="tagsetpanel">
-			<Choices data={this.state.tagset} onSelect={this.onSelect} type="dropdown"/>
+			<Choices data={this.state.tagset} onSelect={this.onSelect} type="radio" labelfor={true}/>
 			<label className="pull-right">
 				<input type="checkbox" checked={this.state.displayonoff} onChange={this.setDisplay}/>display
 			</label>

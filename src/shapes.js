@@ -24,9 +24,9 @@ var drawDoubt=function(rect,ctx) {
 var PartOfSpeechColor={noun:"#F73",verb:"#993",adjective:"#66F",
 pronoun:"#7F3",preposition:"#3F3",conjunction:"#F0F",adverb:"#2FF"
 ,numeral:"#3F7",classifier:"#F07",particle:"#0FF"};
-var drawPartOfSpeech=function(rect,ctx,tag,nth,len) {
+var drawPartOfSpeech=function(rect,ctx,payload,shadows,nth,len) {
 	ctx.beginPath();
-	ctx.strokeStyle=PartOfSpeechColor[tag];
+	ctx.strokeStyle=PartOfSpeechColor[payload.tag];
 	ctx.setLineDash([2]);
 	ctx.lineWidth=2;
 	var x1=rect[0],y1=rect[1],x2=rect[2],y2=rect[3];
@@ -39,7 +39,7 @@ var drawPartOfSpeech=function(rect,ctx,tag,nth,len) {
 }
 var readerExperssColor={important2:"#F33"};
 
-var drawReaderExpress=function(rect,ctx,tag) {
+var drawReaderExpress=function(rect,ctx,payload) {
 	var cx=(rect[0]+rect[2])/2;
 	var cy=(rect[1]+rect[3])/2;
 	var r=(rect[3]-rect[1])/2 +1;
@@ -47,7 +47,7 @@ var drawReaderExpress=function(rect,ctx,tag) {
 	ctx.beginPath();
 	ctx.setLineDash([3])
 	ctx.lineWidth=2;
-	ctx.strokeStyle=readerExperssColor[tag];
+	ctx.strokeStyle=readerExperssColor[payload.tag];
 	ctx.arc(cx,cy,r,0,2*Math.PI,false);
 	ctx.stroke();
 }
@@ -70,8 +70,8 @@ var painters={
 	}
 ;
 
-var draw=function(tag,rect,ctx,nth,len) {
-	var painter=painters[tag];
-	if (painter) painter(rect,ctx,tag,nth,len);
+var draw=function(payload,shadows,rect,ctx,nth,len) {
+	var painter=painters[payload.tag];
+	if (painter) painter(rect,ctx,payload,shadows,nth,len);
 }
 module.exports={draw:draw};

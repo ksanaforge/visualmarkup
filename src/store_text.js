@@ -33,19 +33,29 @@ var store_dsl=Reflux.createStore({
 				cb.apply(this,[db]);
 			}
 		},this);
-	},
-	onGetLectureTextByKepanId:function(kepanid) {
+	}
+	,onGetLectureTextByKepanId:function(kepanid) {
 		this.opendb(function(db){
 			var fileseg=kepanIdToFileSeg(db,kepanid);
 			if (fileseg){
-				this.currentseg=db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
-				this.onGetLectureTextBySeg(this.currentseg);
+				var seg=db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
+				this.onGetLectureTextBySeg(seg);
 			}
 		},this);		
 	},
-	onGetLectureTextBySeg:function(seg) {
-		var fileseg=this.db.absSegToFileSeg(seg);
+	onGetTextByVpos:function(vpos,viewid) {
+		if (viewid!="lecture") return;
+		if (!this.db)return; //this is trigger by markup jump, db should be realy
+		var fileseg=this.db.fileSegFromVpos(vpos);
+		if (fileseg) {
+			var seg=this.db.fileSegToAbsSeg(fileseg.file,fileseg.seg)+1;
+			this.onGetLectureTextBySeg(seg,false);
+		}
+	}
+	,onGetLectureTextBySeg:function(seg) {
+		if (seg==this.currentseg) return;
 		this.currentseg=seg;
+		var fileseg=this.db.absSegToFileSeg(seg);
 		var kepanid=segToKepanId(this.db,seg);
 
 		this.kepanid=kepanid;
@@ -106,18 +116,28 @@ var store_ds=Reflux.createStore({
 		kde.open("ds",{preload:preloadfields},function(err,db){
 			if (!err) cb.apply(this,[db]);
 		},this);
-	},
-	onGetSutraTextByKepanId:function(kepanid) {
+	}
+	,onGetTextByVpos:function(vpos,viewid) {
+		if (viewid!="sutra") return;
+		if (!this.db)return; //this is trigger by markup jump, db should be realy
+		var fileseg=this.db.fileSegFromVpos(vpos);
+		if (fileseg) {
+			var seg=this.db.fileSegToAbsSeg(fileseg.file,fileseg.seg)+1;
+			this.onGetSutraTextBySeg(seg,false);
+		}
+	}
+	,onGetSutraTextByKepanId:function(kepanid) {
 		this.opendb(function(db){
 			var fileseg=kepanIdToFileSeg(db,kepanid,"kw_jwn");
 			this.db=db;
 			if (fileseg){
-				this.currentseg=db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
-				this.onGetSutraTextBySeg(this.currentseg,false);
+				var seg=db.fileSegToAbsSeg(fileseg.file,fileseg.seg-1);
+				this.onGetSutraTextBySeg(seg,false);
 			};
 		});
-	},
-	onGetSutraTextBySeg:function(seg,synckepan) {
+	}
+	,onGetSutraTextBySeg:function(seg,synckepan) {
+		if (seg==this.currentseg) return;
 		this.currentseg=seg;
 		var fileseg=this.db.absSegToFileSeg(seg);
 		var kepanid=segToKepanId(this.db,seg,"kw_jwn");
@@ -130,14 +150,14 @@ var store_ds=Reflux.createStore({
 		kse.highlightSeg(this.db,fileseg.file,fileseg.seg,{token:true},function(data){
 			this.trigger(data.text,this.db);
 		},this);
-	},
-	onNextSutraPara:function(){
+	}
+	,onNextSutraPara:function(){
 		if (!this.db) return;
 		var segnames=this.db.get("segnames");
 		if (this.currentseg+1>=segnames.length) return;
 		this.onGetSutraTextBySeg(this.currentseg+1,true);
-	},
-	onPrevSutraPara:function(){
+	}
+	,onPrevSutraPara:function(){
 		if (!this.db) return;
 		var segnames=this.db.get("segnames");
 		if (this.currentseg<2) return;

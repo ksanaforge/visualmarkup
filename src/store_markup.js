@@ -3,10 +3,14 @@
 */
 var Reflux=require("reflux");
 var actions=require("./actions_markup");
+var actions_text=require("./actions_text");
 var testmarkups=require("./testmarkups");
 var persistent=require("./persistent");
 var layoutMarkups=function(viewpositions,viewmarkups, visibletags, hiddenviews) {
 	var out=[];
+	var findShadow=function(payload) {
+
+	}
 	for (var i in viewmarkups) {
 		if (hiddenviews && hiddenviews.indexOf(i)>-1) continue;
 		var markups=viewmarkups[i].markups;
@@ -14,11 +18,14 @@ var layoutMarkups=function(viewpositions,viewmarkups, visibletags, hiddenviews) 
 		if (!positions) continue ;
 		for (var j=0;j<markups.length;j++) {
 			var markup=markups[j];
-			var start=markup[0], end=markup[0]+markup[1];
+			var len=markup[1];
+			var start=markup[0], end=markup[0]+len;
+			var payload=markup[2];
 			for (var k=start;k<end;k++) {
-				if (positions[k] && visibletags.indexOf(markup[2].tag)>-1 ) {//onscreen
+				if (positions[k] && visibletags.indexOf(payload.tag)>-1 ) {//onscreen
 					// tag , position, nth, total in this group
-					out.push( [markup[2].tag,positions[k], k-start,markup[1] ] );
+					var shadows=findShadow(payload);
+					out.push( [payload,shadows,positions[k], k-start,len ] );
 				}
 			}
 		}
@@ -35,6 +42,7 @@ var store_markup=Reflux.createStore({
 	,hiddenViews:[]     // this view doesn't display
 	,viewpositions:{}  // span positions in each view
 	,visibletags:[]    // only tag in this array are visible
+	,editing:{}        //the markup being edit
 	,onMarkupUpdated:function(){
 		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups,this.visibletags,this.hiddenViews);
 		if (drawables) this.trigger(drawables);
@@ -77,6 +85,14 @@ var store_markup=Reflux.createStore({
 		this.viewmarkups[viewid].markups=markups;
 		this.onMarkupUpdated();
 	}
+	,sortMarkups:function() {
+		for (var viewid in this.viewmarkups) {
+			var markups=this.viewmarkups[viewid].markups;
+			this.viewmarkups[viewid].markups=markups.sort(function(m1,m2){
+				return m1[0]-m2[0];
+			});
+		}
+	}
 	,createMarkup:function(viewid,vpos,length,payload,opts) {
 		opts=opts||{};
 		var markups=this.viewmarkups[viewid].markups;
@@ -87,11 +103,26 @@ var store_markup=Reflux.createStore({
 		if (opts.exclusive) {
 			markups=this.removeMarkupAtPos(markups,vpos,opts.exclusive);
 		}
-		var markup=[vpos,length,payload];
+		var markup=[vpos,length,payload,true];
+		//set 4th field to true for finding it after sort
 		markups.push(markup);
 		this.viewmarkups[viewid].markups=markups;
+		this.sortMarkups();
+		markups=this.viewmarkups[viewid].markups;
 		this.onMarkupUpdated();
-		if (opts.edit) actions.editMarkup(viewid,markups.length-1,markup);
+		if (opts.edit) {
+			var n=0;
+			for (var i=0;i<markups.length;i++) { //find out the newly addedmarkup
+				if (markups[i][3]) {
+					n=i;
+					markups[i]=markups[i].slice(0,3); //remove the true flag
+					break;
+				}
+			}
+			actions.editMarkup(viewid,n,markup);
+			this.editing={viewid:viewid,n:n};
+		}
+
 	}
 	,findVisibleMarkupAt:function(viewid,vpos){
 		if (!this.viewmarkups[viewid]) return;
@@ -110,9 +141,33 @@ var store_markup=Reflux.createStore({
 	}
 	,onEditMarkupAtPos:function(viewid,vpos) {
 		var m=this.findVisibleMarkupAt(viewid,vpos);
+		if (m) {
+			this.editing={viewid:m[0],n:m[1]};
+		} else {
+			this.editing=null;
+		}
 		actions.editMarkup.apply(this,m);
 	}
-	,onSaveMarkup:function(viewid,vpos,markup,opts){
+	,onNextMarkup:function() {
+		if (!this.editing) return;
+		var markups=this.viewmarkups[this.editing.viewid].markups;
+		if (this.editing.n<markups.length-1) {
+			//TODO , skip invisible markup
+			this.editing.n++;
+			actions.editMarkup(this.editing.viewid,this.editing.n,markups[this.editing.n]);
+			actions_text.getTextByVpos(markups[this.editing.n][0],this.editing.viewid);
+		}
+	}
+	,onPrevMarkup:function(){
+		if (!this.editing) return;
+		var markups=this.viewmarkups[this.editing.viewid].markups;
+		if (this.editing.n>0) {
+			this.editing.n--;
+			//TODO , skip invisible markup
+			actions.editMarkup(this.editing.viewid,this.editing.n,markups[this.editing.n]);
+			actions_text.getTextByVpos(markups[this.editing.n][0],this.editing.viewid);
+		}
+	},onSaveMarkup:function(viewid,vpos,markup,opts){
 		this.viewmarkups[viewid].markups[n]=markup;
 		opts=opts||{};
 		if (opts.forceUpdate) this.onMarkupUpdated();

@@ -1,10 +1,10 @@
 /*markup defination file*/
 var tagset_partofspeech=[
-  {label:"代名詞", name:"pronoun", type:"markinternal", desc:"：你、我、他"} 
-  ,{label:"名詞", name:"noun", type:"marksimple", desc:"：桌、椅"} 
+   {label:"名詞", name:"noun", type:"marksimple", desc:"：桌、椅"} 
   ,{label:"動詞", name:"verb", type:"marksimple", desc:"：行、住、坐、臥"} 
-  ,{label:"副詞", name:"adverb",type:"marksimple", desc:"：快、慢"}  
   ,{label:"形容詞", name:"adjective",type:"marksimple", desc:"：冷、熱"}  
+  ,{label:"副詞", name:"adverb",type:"marksimple", desc:"：快、慢"}  
+  ,{label:"代名詞", name:"pronoun", type:"markinternal", desc:"：你、我、他"} 
   ,{label:"助詞", name:"particle",type:"marksimple", desc:"：很"}    
   ,{label:"連接詞", name:"conjunction", type:"marksimple", desc:"：及"} 
   ,{label:"介詞", name:"preposition", type:"marksimple" , desc:"："} 

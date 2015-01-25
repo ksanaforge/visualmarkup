@@ -6,11 +6,19 @@
 var Reflux=require("reflux");
 var actions=require("./actions_markup");
 var store=require("./store_markup");
+var store_selection=require("./store_selection");
 var Markuplayer=require("./markuplayer");
 var textselection=require("./textselection");
 var Markuptable=React.createClass({
-	getInitialState:function() {
+	mixins:[Reflux.listenTo(store_selection,"onSelection")]
+	,getInitialState:function() {
 		return {ready:false,scrolling:false,selections:[]};
+	}
+	,onSelection:function(selections,viewid) {
+		var sels=selections[viewid];
+		if (viewid!=this.props.viewid || //not my business
+		  JSON.stringify(sels)==JSON.stringify(this.state.selections)) return ; //nothing to update	
+		this.setState({selections:sels});
 	}
 	,propTypes:{
 		text:React.PropTypes.array.isRequired
