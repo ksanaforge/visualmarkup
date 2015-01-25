@@ -7,6 +7,12 @@ var store_selection=Reflux.createStore({
 		this.selections[viewid]=selections;
 		this.trigger(this.selections);
 	}
+	,getSelections:function(){
+		return this.selections;
+	}
+	,getSelection:function(viewid){
+		return this.selections[viewid];
+	}
 });
 
 module.exports=store_selection;

@@ -77,7 +77,7 @@ var TagsetTab=React.createClass({
 			</label>
 			<Choices ref="markupchoice" data={this.getTagset(this.state.selected)} 
 				onSelect={this.onSelectTag} type={this.state.displayonoff?"checkbox":"button"} 
-				checked={true} labelfor={true} linebreak={true} autovpos={true} vposInItem={this.vposInItem}/>
+				hotkey={true} checked={true} labelfor={true} linebreak={true} autovpos={true} vposInItem={this.vposInItem}/>
 		</div>
 	}
 });
