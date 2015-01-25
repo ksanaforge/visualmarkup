@@ -11,8 +11,8 @@ var Markuplayer=React.createClass({
 		var ctx = this.refs.thecanvas.getDOMNode().getContext("2d");
 		ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
 		for (var i=0;i<data.length;i++){
-			var tag=data[i][0],rect=data[i][1];
-			shapes.draw(tag,rect,ctx);
+			var tag=data[i][0],rect=data[i][1],nth=data[i][2],len=data[i][3];
+			shapes.draw(tag,rect,ctx,nth,len);
 		}
 	},
 	componentDidMount:function() {

@@ -24,12 +24,17 @@ var drawDoubt=function(rect,ctx) {
 var PartOfSpeechColor={noun:"#F73",verb:"#993",adjective:"#66F",
 pronoun:"#7F3",preposition:"#3F3",conjunction:"#F0F",adverb:"#2FF"
 ,numeral:"#3F7",classifier:"#F07",particle:"#0FF"};
-var drawPartOfSpeech=function(rect,ctx,tag) {
+var drawPartOfSpeech=function(rect,ctx,tag,nth,len) {
 	ctx.beginPath();
 	ctx.strokeStyle=PartOfSpeechColor[tag];
 	ctx.setLineDash([2]);
 	ctx.lineWidth=2;
-	ctx.rect(rect[0],rect[1],rect[2]-rect[0],rect[3]-rect[1]);
+	var x1=rect[0],y1=rect[1],x2=rect[2],y2=rect[3];
+
+	ctx.moveTo(x2,y1);ctx.lineTo(x1,y1);
+	if (nth==0) ctx.lineTo(x1,y2);
+	ctx.moveTo(x1,y2);ctx.lineTo(x2,y2);
+	if (nth==len-1) ctx.lineTo(x2,y1);
 	ctx.stroke();
 }
 var readerExperssColor={important2:"#F33"};
@@ -65,8 +70,8 @@ var painters={
 	}
 ;
 
-var draw=function(tag,rect,ctx) {
+var draw=function(tag,rect,ctx,nth,len) {
 	var painter=painters[tag];
-	if (painter) painter(rect,ctx,tag);
+	if (painter) painter(rect,ctx,tag,nth,len);
 }
 module.exports={draw:draw};

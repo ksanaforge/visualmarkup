@@ -17,7 +17,8 @@ var layoutMarkups=function(viewpositions,viewmarkups, visibletags, hiddenviews) 
 			var start=markup[0], end=markup[0]+markup[1];
 			for (var k=start;k<end;k++) {
 				if (positions[k] && visibletags.indexOf(markup[2].tag)>-1 ) {//onscreen
-					out.push( [markup[2].tag,positions[k]] );
+					// tag , position, nth, total in this group
+					out.push( [markup[2].tag,positions[k], k-start,markup[1] ] );
 				}
 			}
 		}
