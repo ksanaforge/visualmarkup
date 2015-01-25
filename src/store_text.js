@@ -48,7 +48,7 @@ var store_dsl=Reflux.createStore({
 		if (!this.db)return; //this is trigger by markup jump, db should be realy
 		var fileseg=this.db.fileSegFromVpos(vpos);
 		if (fileseg) {
-			var seg=this.db.fileSegToAbsSeg(fileseg.file,fileseg.seg)+1;
+			var seg=this.db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
 			this.onGetLectureTextBySeg(seg,false);
 		}
 	}
@@ -122,7 +122,7 @@ var store_ds=Reflux.createStore({
 		if (!this.db)return; //this is trigger by markup jump, db should be realy
 		var fileseg=this.db.fileSegFromVpos(vpos);
 		if (fileseg) {
-			var seg=this.db.fileSegToAbsSeg(fileseg.file,fileseg.seg)+1;
+			var seg=this.db.fileSegToAbsSeg(fileseg.file,fileseg.seg); //this is a work-around
 			this.onGetSutraTextBySeg(seg,false);
 		}
 	}

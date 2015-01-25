@@ -42,7 +42,7 @@ var store_markup=Reflux.createStore({
 	,hiddenViews:[]     // this view doesn't display
 	,viewpositions:{}  // span positions in each view
 	,visibletags:[]    // only tag in this array are visible
-	,editing:{}        //the markup being edit
+	,editing:{}        //the markup being edited
 	,onMarkupUpdated:function(){
 		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups,this.visibletags,this.hiddenViews);
 		if (drawables) this.trigger(drawables);
@@ -64,13 +64,14 @@ var store_markup=Reflux.createStore({
 		persistent.loadMarkups(keys,function(content){
 			for (var i=0;i<content.length;i++){
 				var viewid=keys[i].substr(0,keys[i].indexOf("."));
-				this.viewmarkups[viewid  ]=content[i];
+				this.viewmarkups[viewid]=content[i];
 			}
 			this.onMarkupUpdated();
 		},this);		
 	}
-	,onSetActiveTagset:function(tagsetname){ 
+	,onSetActiveTagset:function(tagsetname,tagset){ 
 		this.tagsetname=tagsetname;
+		this.tagset=tagset;
 		this.loadMarkups();
 	}
 	,onSetVisibleTags:function(visibletags,norefresh) {
@@ -221,6 +222,7 @@ var store_markup=Reflux.createStore({
 			this.viewmarkups[i]=content[i];
 			this.viewmarkups[i]._rev=rev;
 		}
+		this.sortMarkups(); //make sure it is sorted
 		this.onMarkupUpdated();
 	}
 

@@ -17,6 +17,8 @@ var store_tagset=Reflux.createStore({
 		var exclusive=[];
 		var tag=this.tagset[n].name;
 		var viewsels=store_selection.getSelections();
+		var valid=this.tagset[n].def.isValidSelection(viewsels);
+		if (!valid) return;
 		for (var viewid in viewsels) {
 				var sels=viewsels[viewid];
 				for (var j=0;j<sels.length;j++){
