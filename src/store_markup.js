@@ -160,9 +160,10 @@ var store_markup=Reflux.createStore({
 		//this.onMarkupUpdated();
 	}
 	,setRawMarkup:function(content) {
-		persistent.resetMarkups(this.markupsArrayForSerialize());
 		for (var i in content){
+			var rev=this.viewmarkups[i]._rev;
 			this.viewmarkups[i]=content[i];
+			this.viewmarkups[i]._rev=rev;
 		}
 		this.onMarkupUpdated();
 	}

@@ -54,11 +54,13 @@ var Markuptable=React.createClass({
       	if (sel.len) {
       		selections=[[sel.start,sel.len]];	
       	} else {
-      		selections=[];
+      		if (selections.length) selections=[];
       	}
       }
-      this.setState({selections:selections});
-      actions.setSelection(selections , this.props.viewid);
+      if (selections!=this.state.selections) {
+      	this.setState({selections:selections});
+      	actions.setSelection(selections , this.props.viewid);
+      }
 	}
 	,mouseOut:function() {
 
