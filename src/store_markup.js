@@ -60,7 +60,7 @@ var store_markup=Reflux.createStore({
 			this.onMarkupUpdated();
 		},this);		
 	}
-	,onSetTagsetName:function(tagsetname){
+	,onSetActiveTagset:function(tagsetname){ 
 		this.tagsetname=tagsetname;
 		this.loadMarkups();
 	}
@@ -93,6 +93,7 @@ var store_markup=Reflux.createStore({
 		if (opts.edit) actions.editMarkup(viewid,markups.length-1,markup);
 	}
 	,findVisibleMarkupAt:function(viewid,vpos){
+		if (!this.viewmarkups[viewid]) return;
 		var markups=this.viewmarkups[viewid].markups;
 		if (!markups) return null;
 		var inrange=[]; // markup, distance, n in viewmarkups
@@ -148,7 +149,11 @@ var store_markup=Reflux.createStore({
 		this.onMarkupUpdated();
 	}
 	,getRawMarkup:function() {
-		return this.viewmarkups;
+		var out={};
+		for (var i in this.viewmarkups) {
+			if (this.viewIDs.indexOf(i)>-1) out[i]=this.viewmarkups[i];
+		}
+		return out;
 	}
 	,onSetVirtualMarkup:function( markups,viewid) {// virtual markup will not save to db
 		this.viewmarkups[viewid]={markups:markups};
@@ -156,7 +161,7 @@ var store_markup=Reflux.createStore({
 	}
 	,setRawMarkup:function(content) {
 		persistent.resetMarkups(this.markupsArrayForSerialize());
-		for (var i=0;i<content.length;i++){
+		for (var i in content){
 			this.viewmarkups[i]=content[i];
 		}
 		this.onMarkupUpdated();

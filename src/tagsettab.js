@@ -39,7 +39,7 @@ var TagsetTab=React.createClass({
 		actions.loadTagsets();
 	}
 	,onSelectTag:function(n,prev){
-		console.log(n,prev)
+		actions.doTag(n);
 	}
 	,disableRandom:function(tagset) {
 		tagset.map(function(tag){
@@ -77,7 +77,7 @@ var TagsetTab=React.createClass({
 			</label>
 			<Choices ref="markupchoice" data={this.getTagset(this.state.selected)} 
 				onSelect={this.onSelectTag} type={this.state.displayonoff?"checkbox":"button"} 
-				checked={true} linebreak={true} autovpos={true} vposInItem={this.vposInItem}/>
+				checked={true} labelfor={true} linebreak={true} autovpos={true} vposInItem={this.vposInItem}/>
 		</div>
 	}
 });
