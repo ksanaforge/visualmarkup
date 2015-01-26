@@ -52,13 +52,12 @@ var drawReaderExpress=function(ctx,inst) {
 	ctx.stroke();
 }
 
-var painters={
+var drawers={
 	simple:drawSimple
 };
 
 var draw=function(ctx,inst) {
-	console.log(inst)
-	var painter=painters[inst.tagdef.type];
-	if (painter) painter(ctx,inst);
+	var drawer=drawers[inst.tagdef.type];
+	if (drawer) drawer(ctx,inst);
 }
 module.exports={draw:draw};

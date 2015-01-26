@@ -1,7 +1,7 @@
 var Reflux=require("reflux");
 var store_userinfo=require("./store_userinfo");
 var store_selection=require("./store_selection");
-
+var store_tagsets=require("./store_tagsets");
 var actions=require("./actions_markup");
 var store_tagset=Reflux.createStore({
 	listenables: [actions]
@@ -48,7 +48,8 @@ var store_tagset=Reflux.createStore({
 				var sels=viewsels[viewid];
 				for (var j=0;j<sels.length;j++){
 					var sel=sels[j];
-					var payload={tag:tag,source:store_userinfo.getUserName()};
+					var def=store_tagsets.defOfTag(tag);
+					var payload=def.initPayload(tag);
 					actions.createMarkup(viewid,sel[0],sel[1],payload,{edit:true,exclusive:exclusive});
 				}			
 		}

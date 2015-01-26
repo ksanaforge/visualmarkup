@@ -26,7 +26,7 @@ var store_tagsets=Reflux.createStore({
 			var tagset=this.tagsets[i].tagset;
 			for (var j=0;j<tagset.length;j++) {
 				var tagdef=tagset[j];
-				if (tagdef.name==tag) return tagdef;
+				if (tagdef.name==tag) return tagdef.def;
 			}
 		};
 		return null;
