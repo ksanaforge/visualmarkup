@@ -6,32 +6,7 @@ var actions=require("./actions_markup");
 var actions_text=require("./actions_text");
 var testmarkups=require("./testmarkups");
 var persistent=require("./persistent");
-var layoutMarkups=function(viewpositions,viewmarkups, visibletags, hiddenviews) {
-	var out=[];
-	var findShadow=function(payload) {
-
-	}
-	for (var i in viewmarkups) {
-		if (hiddenviews && hiddenviews.indexOf(i)>-1) continue;
-		var markups=viewmarkups[i].markups;
-		var positions=viewpositions[i];
-		if (!positions) continue ;
-		for (var j=0;j<markups.length;j++) {
-			var markup=markups[j];
-			var len=markup[1];
-			var start=markup[0], end=markup[0]+len;
-			var payload=markup[2];
-			for (var k=start;k<end;k++) {
-				if (positions[k] && visibletags.indexOf(payload.tag)>-1 ) {//onscreen
-					// tag , position, nth, total in this group
-					var shadows=findShadow(payload);
-					out.push( [payload,shadows,positions[k], k-start,len ] );
-				}
-			}
-		}
-	}
-	return out;
-}
+var store_tagsets=require("./store_tagsets");
 
 var store_trait=require("./store_trait");
 
@@ -44,7 +19,7 @@ var store_markup=Reflux.createStore({
 	,visibletags:[]    // only tag in this array are visible
 	,editing:{}        //the markup being edited
 	,onMarkupUpdated:function(){
-		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups,this.visibletags,this.hiddenViews);
+		var drawables=this.layoutMarkups();
 		if (drawables) this.trigger(drawables);
 		actions.cancelEdit();
 	}
@@ -58,6 +33,34 @@ var store_markup=Reflux.createStore({
 	}
 	,docIDs:function() {
 		return this.viewIDs.map(function(v){return v+"."+this.tagsetname},this);
+	}
+	,findShadow:function(){
+
+	}
+	,layoutMarkups:function() {
+		var out=[];
+		for (var i in this.viewmarkups) {
+			if (this.hiddenviews && this.hiddenviews.indexOf(i)>-1) continue;
+			var markups=this.viewmarkups[i].markups;
+			var positions=this.viewpositions[i];
+			if (!positions) continue ;
+			for (var j=0;j<markups.length;j++) {
+				var markup=markups[j];
+				var len=markup[1];
+				var start=markup[0], end=markup[0]+len;
+				var payload=markup[2];
+				for (var k=start;k<end;k++) {
+					if (positions[k] && this.visibletags.indexOf(payload.tag)>-1 ) {//onscreen
+						// tag , position, nth, total in this group
+						var shadows=this.findShadow(payload);
+						var tagdef=store_tagsets.defOfTag(payload.tag);
+						out.push( {tagsetname:this.tagsetname,payload:payload,shadows:shadows,
+							rect:positions[k], nth:k-start,len:len,tagdef:tagdef } );
+					}
+				}
+			}
+		}
+		return out;
 	}
 	,loadMarkups:function() {
 		var keys=this.docIDs();
@@ -168,14 +171,10 @@ var store_markup=Reflux.createStore({
 			actions.editMarkup(this.editing.viewid,this.editing.n,markups[this.editing.n]);
 			actions_text.getTextByVpos(markups[this.editing.n][0],this.editing.viewid);
 		}
-	},onSaveMarkup:function(viewid,vpos,markup,opts){
-		this.viewmarkups[viewid].markups[n]=markup;
-		opts=opts||{};
-		if (opts.forceUpdate) this.onMarkupUpdated();
 	}
 	,onTokenPositionUpdated:function(positions,viewid) {
 		this.viewpositions[viewid]=positions;
-		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups,this.visibletags,this.hiddenViews);
+		var drawables=this.layoutMarkups();
 		if (drawables) this.trigger(drawables);
 	}
 	,onAddHiddenView:function(viewid) {
@@ -200,6 +199,11 @@ var store_markup=Reflux.createStore({
 	}
 	,onSaveMarkups:function(cb,context){
 		persistent.saveMarkups(this.markupsArrayForSerialize(), cb,context);
+	}
+	,onSaveMarkup:function(viewid,n,markup,opts){
+		this.viewmarkups[viewid].markups[n]=markup;
+		opts=opts||{};
+		if (opts.forceUpdate) this.onMarkupUpdated();
 	}
 	,onClearAllMarkups:function(){
 		persistent.resetMarkups(this.markupsArrayForSerialize());

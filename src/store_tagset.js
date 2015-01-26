@@ -8,16 +8,20 @@ var store_tagset=Reflux.createStore({
 	,init:function() {
 		this.listenTo(store_selection, this.selectionChanged);
 	}
-	,enableTagsetBySelection:function(viewselections) {
-		if (!this.tagset) return;
+	,groupSelection:function(viewselections){
 		var groupedselection=[];
 
 		for (var i in viewselections) { //how many selections in each view
 			var len=viewselections[i].length;
 			if (len) groupedselection.push(len);
 		}
+		return groupedselection;
+	}
+	,enableTagsetBySelection:function(viewselections) {
+		if (!this.tagset) return;
+		var g=this.groupSelection(viewselections);
 		for (var i=0;i<this.tagset.length;i++) {
-			this.tagset[i].disabled=!this.tagset[i].def.isValidSelection(groupedselection,viewselections);
+			this.tagset[i].disabled=!this.tagset[i].def.isValidSelection(g,viewselections);
 		}
 	}
 	,selectionChanged:function(viewselections) {
@@ -37,7 +41,8 @@ var store_tagset=Reflux.createStore({
 		var exclusive=[];
 		var tag=this.tagset[n].name;
 		var viewsels=store_selection.getSelections();
-		var valid=this.tagset[n].def.isValidSelection(viewsels);
+		var g=this.groupSelection(viewsels);
+		var valid=this.tagset[n].def.isValidSelection(g,viewsels);
 		if (!valid) return;
 		for (var viewid in viewsels) {
 				var sels=viewsels[viewid];

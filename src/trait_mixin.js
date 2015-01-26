@@ -25,19 +25,18 @@ var trait_mixin={
 	}
 	,copyValue:function(props) {
 		var trait=props.trait;
-		for (var i in trait) {
-			if (this.refs[i]) {
-				this.refs[i].getDOMNode().value=trait[i];
-			}
+		for (var i in this.refs) {
+			this.refs[i].getDOMNode().value=trait[i] ||"";
 		}
 	}
 	,getValue:function() {
 		var out={};
 		var trait=this.props.trait;
-		for (var i in this.props.trait) {
-			if (this.refs[i]) {
-				out[i]=this.refs[i].getDOMNode().value;
-			}
+		for (var i in this.refs) {
+			out[i]=this.refs[i].getDOMNode().value;
+		}
+		for (var i in trait) { //copy old value
+			if (!out[i]) out[i]=trait[i];
 		}
 		return out;
 	}

@@ -19,7 +19,7 @@ var Trait=React.createClass({
 		if (!this.state.modified || !this.state.markup) return;
 		var markup=this.state.markup;
 		markup[2]=this.refs.template.getValue();
-		actions.saveMarkups(this.state.viewid,this.state.nmarkup,markup);
+		actions.saveMarkup(this.state.viewid,this.state.nmarkup,markup);
 	}
 	,componentWillUnmount:function() {
 		this.commitChange();
@@ -50,12 +50,12 @@ var Trait=React.createClass({
 		var out=[];
 		for (var view in this.state.viewselections) {
 			var selections=this.state.viewselections[view];
-			if (selections.length) out.push(<div>View:{view}</div>)
+			if (selections.length) out.push(<div key="view">View:{view}</div>)
 			for (var i=0;i<selections.length;i++) {
 				var sel=selections[i];
-				out.push(<div>{sel[0]+"-"+sel[1]}</div>);
+				out.push(<div key={"s"+i}>{sel[0]+"-"+sel[1]}</div>);
 			}
-			out.push(<hr/>)
+			out.push(<hr key="hr"/>)
 		}
 		return out;
 	}

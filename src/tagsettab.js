@@ -58,7 +58,7 @@ var TagsetTab=React.createClass({
 		return selectedset?selectedset.tagset:[];
 	}
 	,setDisplay:function(e) {
-		this.setState({displayonoff:e.target.checked});
+		this.setState({displayonoff:e.target.checked,updatepos:true});
 	}
 	,convertToMarkup:function(arr) {
 		return arr.map(function(item){
