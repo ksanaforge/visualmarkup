@@ -2,6 +2,7 @@ var action_markups=require("reflux").createActions([
 		"loadTagsets",
 		"setActiveTagset",
 		"setSelection",
+		"addSelection",
 		"tokenPositionUpdated",
 		"createMarkup",
 		"editMarkup",

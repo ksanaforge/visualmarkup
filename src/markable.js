@@ -57,19 +57,7 @@ var Markuptable=React.createClass({
       var oldlength=selections.length;
       if (!sel) return;
 
-      if (e.ctrlKey && sel && sel.len) {
-      	selections.push([sel.start,sel.len]);
-      } else {
-      	if (sel.len) {
-      		selections=[[sel.start,sel.len]];	
-      	} else {
-      		if (selections.length) selections=[];
-      	}
-      }
-      if (selections!=this.state.selections || selections.length>oldlength) {
-      	this.setState({selections:selections});
-      	actions.setSelection(selections , this.props.viewid);
-      }
+      actions.addSelection(this.props.viewid, selections, sel.start,sel.len , e.ctrlKey );
 	}
 	,mouseOut:function() {
 
