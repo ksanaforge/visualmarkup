@@ -55,7 +55,7 @@ var Markuptable=React.createClass({
       var sel=textselection();  
       var selections=this.state.selections;
       var oldlength=selections.length;
-      if (!sel) return;
+      if (!sel)return;
 
       actions.addSelection(this.props.viewid, selections, sel.start,sel.len , e.ctrlKey );
 	}

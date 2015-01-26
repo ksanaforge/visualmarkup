@@ -1,22 +1,29 @@
 var Choices=require("ksana2015-components").choices;
 var store=require("./store_tagsets");
+var store_tagset=require("./store_tagset");
 var actions=require("./actions_markup");
 var Reflux=require("reflux");
 var viewID= "markuppanel";
 var TagsetTab=React.createClass({
-	mixins:[Reflux.listenTo(store,"onTagSet")],
+	mixins:[Reflux.listenTo(store,"onTagSets"), Reflux.listenTo(store_tagset,"onTagsetStatus")],
 	propTypes:{
 	} 
-	,onTagSet:function(tagset) {
-		this.setState({tagset:tagset});
-		this.setVisibility(0,true);
+	,onTagSets:function(tagsets) {
+		this.setState({tagsets:tagsets});
+		this.setVisibility(this.state.selected,true);
+	}
+	,onTagsetStatus:function(activetagset) {//enabling buttons
+		this.setState({updatepos:false});
 	}
 	,getInitialState:function(){
-		return {selected:0,tagset:[],displayonoff:false};
+		return {selected:0,tagsets:[],displayonoff:false,updatepos:true};
 	}
 	,onSelect:function(n,perv) {
-		this.setState({selected:n});
-		this.setVisibility(n);
+		this.setState({selected:n,updatepos:false});
+		if (n!=this.state.selected) {
+			this.setVisibility(n);
+			this.setState({updatepos:true});
+		}
 	}
 	,updatePosition:function(children) {
 		var out={};
@@ -33,7 +40,7 @@ var TagsetTab=React.createClass({
 		actions.tokenPositionUpdated( out,viewID);
 	}
 	,componentDidUpdate:function() {
-		this.updatePosition(this.refs.markupchoice.getDOMNode().children);
+		if (this.state.updatepos) this.updatePosition(this.refs.markupchoice.getDOMNode().children);
 	}
 	,componentDidMount:function() {
 		actions.loadTagsets();
@@ -41,18 +48,13 @@ var TagsetTab=React.createClass({
 	,onSelectTag:function(n,prev){
 		actions.doTag(n);
 	}
-	,disableRandom:function(tagset) {
-		tagset.map(function(tag){
-			tag.disabledLabel=Math.random()>0.5;
-		});
-	}
 	,setVisibility:function(selected,norefresh) {
 		var tagset=this.getTagset(selected);
-		actions.setActiveTagset(this.state.tagset[selected].name,tagset);
+		actions.setActiveTagset(this.state.tagsets[selected].name,tagset);
 		actions.setVisibleTags(tagset.map(function(t){return t.name}),norefresh);
 	}
 	,getTagset:function(n) {
-		var selectedset=this.state.tagset[n];
+		var selectedset=this.state.tagsets[n];
 		return selectedset?selectedset.tagset:[];
 	}
 	,setDisplay:function(e) {
@@ -71,7 +73,8 @@ var TagsetTab=React.createClass({
 	}
 	,render:function() {
 		return <div className="tagsetpanel">
-			<Choices data={this.state.tagset} onSelect={this.onSelect} type="radio" labelfor={true}/>
+			<Choices data={this.state.tagsets} selected={this.state.selected}
+			          onSelect={this.onSelect} type="radio" labelfor={true}/>
 			<label className="pull-right">
 				<input type="checkbox" checked={this.state.displayonoff} onChange={this.setDisplay}/>display
 			</label>
