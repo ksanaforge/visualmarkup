@@ -5,20 +5,29 @@
 
 var Reflux=require("reflux");
 var actions=require("./actions_markup");
+var actions_selection=require("./actions_selection");
 var store=require("./store_markup");
 var store_selection=require("./store_selection");
+var store_highlight=require("./store_highlight");
 var Markuplayer=require("./markuplayer");
 var textselection=require("./textselection");
 var Markuptable=React.createClass({
-	mixins:[Reflux.listenTo(store_selection,"onSelection")]
+	mixins:[Reflux.listenTo(store_selection,"onSelection"),
+	        Reflux.listenTo(store_highlight,"onHighlight")]
 	,getInitialState:function() {
-		return {ready:false,scrolling:false,selections:[]};
+		return {ready:false,scrolling:false,selections:[],highlights:[]};
 	}
 	,onSelection:function(selections,viewid) {
 		var sels=selections[viewid];
 		if (viewid!=this.props.viewid || //not my business
 		  JSON.stringify(sels)==JSON.stringify(this.state.selections)) return ; //nothing to update	
 		this.setState({selections:sels});
+	}
+	,onHighlight:function(highlights,viewid) {
+		var hls=highlights[viewid]||[];
+		if (viewid!=this.props.viewid || //not my business
+		  JSON.stringify(hls)==JSON.stringify(this.state.highlights)) return ; //nothing to update	
+		this.setState({highlights:hls});
 	}
 	,propTypes:{
 		text:React.PropTypes.array.isRequired
@@ -45,6 +54,9 @@ var Markuptable=React.createClass({
 	,componentWillReceiveProps:function(nextProps) {
 		if (nextProps.text!=this.props.text) this.setState({ready:false});
 	}
+	,componentWillUpdate:function() {
+		this.editing=store.getEditing(this.props.viewid);
+	}
 	,componentDidUpdate:function(){
 		if (!this.state.ready) this.updatePosition();
 	}
@@ -57,7 +69,8 @@ var Markuptable=React.createClass({
       var oldlength=selections.length;
       if (!sel)return;
 
-      actions.addSelection(this.props.viewid, selections, sel.start,sel.len , e.ctrlKey );
+      actions.cancelEdit();
+      actions_selection.addSelection(this.props.viewid, selections, sel.start,sel.len , e.ctrlKey );
 	}
 	,mouseOut:function() {
 
@@ -65,16 +78,31 @@ var Markuptable=React.createClass({
 	,mouseMove:function() {
 
 	}
-	,inSelection:function(idx) {
+	,inSelected:function(idx) {
 		for (var i=0;i<this.state.selections.length;i++) {
 			var sel=this.state.selections[i];
 			if (idx>=sel[0] && idx<sel[0]+sel[1]) return true;
 		}
 		return false;
 	}
+	,highlighedStyle:function(idx) {
+		for (var i=0;i<this.state.highlights.length;i++) {
+			var hl=this.state.highlights[i];
+			if (idx>=hl[0] && idx<hl[0]+hl[1]) {
+				if (this.editing && this.editing[0]==hl[0] && this.editing[1]==hl[1]) {
+					return "editing";
+				} else {
+					return "highlighted";	
+				}
+			}
+		}
+		return false;
+	}
 	,renderChar:function(item,idx){
 		var cls="";
-		if (this.inSelection(item[1])) cls="selected";
+		if (this.inSelected(item[1])) cls="selected";
+		cls+=this.highlighedStyle(item[1]);
+		
 		return <span className={cls} key={"c"+idx} data-n={item[1]}>{item[0]}</span>
 	},
 	render:function() {

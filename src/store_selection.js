@@ -1,5 +1,5 @@
 var Reflux=require("reflux");
-var actions=require("./actions_markup");
+var actions=require("./actions_selection");
 
 var store_selection=Reflux.createStore({
 	listenables: [actions]
@@ -19,6 +19,7 @@ var store_selection=Reflux.createStore({
 		return -1;
 	}
 	,onClearSelection:function(viewid) {
+		actions.clearHighlights();
 		console.log("clear selection",viewid)
 	}
 	,onAddSelection:function(viewid,existingselections,start,len,append) {
@@ -46,16 +47,22 @@ var store_selection=Reflux.createStore({
 
 		if (updated) {
 			actions.setSelection(selections , viewid);
-		}      
-		//check overlap
-		//remove all existing selection overlap with newselection
-		//if newselection is exact matching an old selection, just remove it (unselect)
-		//otherwise append
-		//onSetSelction
+		}
 	}
 	,onSetSelection:function(selections,viewid) {
 		this.selections[viewid]=selections;
+		actions.clearHighlights();
 		this.trigger(this.selections,viewid);
+	}
+	,onSetSelections:function(viewselections) {
+		for (var i in viewselections) {
+			this.selections[i]=viewselections[i];
+		}
+		var updated=Object.keys(viewselections);
+		for (var i=0;i<updated.length;i++){
+			this.trigger(this.selections,updated[i]); //notify affected view
+		}
+		actions.clearHighlights();
 	}
 	,getSelections:function(){
 		return this.selections;

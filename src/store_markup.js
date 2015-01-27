@@ -8,8 +8,6 @@ var testmarkups=require("./testmarkups");
 var persistent=require("./persistent");
 var store_tagsets=require("./store_tagsets");
 
-var store_trait=require("./store_trait");
-
 var store_markup=Reflux.createStore({
 	listenables: [actions]
 	,viewmarkups:{}    // all markups to be drawn, including on disk and virtual
@@ -34,8 +32,33 @@ var store_markup=Reflux.createStore({
 	,docIDs:function() {
 		return this.viewIDs.map(function(v){return v+"."+this.tagsetname},this);
 	}
-	,findShadow:function(){
-
+	,linkShadow:function(drawables){
+		for (var i=0;i<drawables.length;i++) {
+			var drawable=drawables[i];
+			if (drawable.payload.id && !drawable.payload.shadow) {
+				var shadows=[];
+				for (var j=0;j<drawables.length;j++) {
+					var shadow=drawables[j];
+					if (!shadow.master && shadow.nth==0 && 
+						shadow.payload.shadow && shadow.payload.id==drawable.payload.id) {
+						shadows.push(drawable);
+						shadow.master=drawable;
+					}
+				}
+				drawable.shadows=shadows;
+			}
+		}
+	}
+	,findShadow:function(markup) { //return object of array of markup, object key is viewid
+		var id=markup[2].id;
+		var out={};
+		this.forEachMarkup(function(m,viewid){
+			if (m[2].id==id && m[2].shadow) {
+				if (!out[viewid]) out[viewid]=[];
+				out[viewid].push(m);
+			}
+		});
+		return out;
 	}
 	,layoutMarkups:function() {
 		var out=[];
@@ -43,7 +66,7 @@ var store_markup=Reflux.createStore({
 			if (this.hiddenViews && this.hiddenViews.indexOf(i)>-1) continue;
 			var markups=this.viewmarkups[i].markups;
 			var positions=this.viewpositions[i];
-			if (!positions) continue ;
+			if (!positions) continue;
 			for (var j=0;j<markups.length;j++) {
 				var markup=markups[j];
 				var len=markup[1];
@@ -52,14 +75,14 @@ var store_markup=Reflux.createStore({
 				for (var k=start;k<end;k++) {
 					if (positions[k] && this.visibletags.indexOf(payload.tag)>-1 ) {//onscreen
 						// tag , position, nth, total in this group
-						var shadows=this.findShadow(payload);
 						var tagdef=store_tagsets.defOfTag(payload.tag);
-						out.push( {tagsetname:this.tagsetname,payload:payload,shadows:shadows,
+						out.push( {tagsetname:this.tagsetname,payload:payload,shadows:null, master:null,
 							rect:positions[k], nth:k-start,len:len,tagdef:tagdef } );
 					}
 				}
 			}
 		}
+		this.linkShadow(out);
 		return out;
 	}
 	,loadMarkups:function() {
@@ -107,7 +130,7 @@ var store_markup=Reflux.createStore({
 		if (opts.exclusive) {
 			markups=this.removeMarkupAtPos(markups,vpos,opts.exclusive);
 		}
-		var markup=[vpos,length,payload,true];
+		var markup=[vpos,length,payload];
 		//set 4th field to true for finding it after sort
 		markups.push(markup);
 		this.viewmarkups[viewid].markups=markups;
@@ -116,10 +139,9 @@ var store_markup=Reflux.createStore({
 		this.onMarkupUpdated();
 		if (opts.edit) {
 			var n=0;
-			for (var i=0;i<markups.length;i++) { //find out the newly addedmarkup
-				if (markups[i][3]) {
+			for (var i=0;i<markups.length;i++) { //find the nth of newly created markup
+				if (markups[i]==markup) {//newly created
 					n=i;
-					markups[i]=markups[i].slice(0,3); //remove the true flag
 					break;
 				}
 			}
@@ -127,6 +149,15 @@ var store_markup=Reflux.createStore({
 			this.editing={viewid:viewid,n:n};
 		}
 
+	}
+	,getEditing:function(viewid) {
+		if (!this.editing) return null;
+		if (this.editing.viewid==viewid) {
+			var v=this.viewmarkups[viewid].markups;
+			if (!v) return null;
+			return v[this.editing.n];
+		};
+		return null;
 	}
 	,findVisibleMarkupAt:function(viewid,vpos){
 		if (!this.viewmarkups[viewid]) return;
@@ -141,16 +172,18 @@ var store_markup=Reflux.createStore({
 		};
 		if (!inrange.length) return null;
 		inrange.sort(function(a,b){return a[1]-b[1]}); //find out the nearest
-		return [viewid,inrange[0][2],inrange[0][0]]; //for editmarkup
+		return {viewid:viewid,n:inrange[0][2],markup:inrange[0][0]}; //for editmarkup
 	}
 	,onEditMarkupAtPos:function(viewid,vpos) {
-		var m=this.findVisibleMarkupAt(viewid,vpos);
-		if (m) {
-			this.editing={viewid:m[0],n:m[1]};
+		var res=this.findVisibleMarkupAt(viewid,vpos);
+		this.editing=null;
+		if (res) {
+			this.editing={viewid:res.viewid,n:res.n};
+			actions.editMarkup(res.viewid,res.markup,res.n);
 		} else {
-			this.editing=null;
+			actions.editMarkup(null,null,null);
 		}
-		actions.editMarkup.apply(this,m);
+		
 	}
 	,onNextMarkup:function() {
 		if (!this.editing) return;
@@ -158,7 +191,7 @@ var store_markup=Reflux.createStore({
 		if (this.editing.n<markups.length-1) {
 			//TODO , skip invisible markup
 			this.editing.n++;
-			actions.editMarkup(this.editing.viewid,this.editing.n,markups[this.editing.n]);
+			actions.editMarkup(this.editing.viewid,markups[this.editing.n],this.editing.n);
 			actions_text.getTextByVpos(markups[this.editing.n][0],this.editing.viewid);
 		}
 	}
@@ -168,7 +201,7 @@ var store_markup=Reflux.createStore({
 		if (this.editing.n>0) {
 			this.editing.n--;
 			//TODO , skip invisible markup
-			actions.editMarkup(this.editing.viewid,this.editing.n,markups[this.editing.n]);
+			actions.editMarkup(this.editing.viewid,markups[this.editing.n],this.editing.n);
 			actions_text.getTextByVpos(markups[this.editing.n][0],this.editing.viewid);
 		}
 	}
@@ -208,6 +241,24 @@ var store_markup=Reflux.createStore({
 	,onClearAllMarkups:function(){
 		persistent.resetMarkups(this.markupsArrayForSerialize());
 		this.onMarkupUpdated();
+	}
+	,forEachMarkup:function(cb) {//return no null to quit loop
+		for (var i in this.viewmarkups) {
+			if (this.viewIDs.indexOf(i)==-1) continue;
+			var markups=this.viewmarkups[i].markups;
+			for (var j=0;j<markups.length;j++) {
+				var ret=cb(markups[j],i);
+				if (ret) return ret;
+			}
+		}
+	}
+	,getMasterMarkup:function(markup,viewid) { //return [mastermarkup,viewid]
+		var payload=markup[2];
+		var id=payload.id;
+		if (id && !payload.shadow) return [markup,viewid];
+		return this.forEachMarkup(function(m,viewid){
+			if (m[2].id==id && !m[2].shadow) return [m,viewid];
+		});
 	}
 	,getRawMarkup:function() {
 		var out={};

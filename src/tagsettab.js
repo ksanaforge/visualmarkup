@@ -16,7 +16,7 @@ var TagsetTab=React.createClass({
 		this.setState({updatepos:false});
 	}
 	,getInitialState:function(){
-		return {selected:0,tagsets:[],displayonoff:false,updatepos:true};
+		return {selected:3,tagsets:[],displayonoff:false,updatepos:true};
 	}
 	,onSelect:function(n,perv) {
 		this.setState({selected:n,updatepos:false});

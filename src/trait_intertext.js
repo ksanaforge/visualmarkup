@@ -8,7 +8,7 @@ var Trait_readerexpress=React.createClass({
 	  					<input ref="note" onInput={this.change} type="text" className="form-control" placeholder="解釋"/>
 				</div>
 				<div className="input-group">
-	  				<span className="input-group-addon">讀者</span>
+	  				<span className="input-group-addon">創作者</span>
 	  				<input ref="owner" type="text" readOnly={true} className="form-control"></input>
 				</div>
 			</div>

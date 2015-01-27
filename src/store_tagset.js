@@ -3,6 +3,13 @@ var store_userinfo=require("./store_userinfo");
 var store_selection=require("./store_selection");
 var store_tagsets=require("./store_tagsets");
 var actions=require("./actions_markup");
+var S4=function() {
+    return (((1+Math.random())*0x10000)|0).toString(16).substring(1); 
+}
+var genGUID = function() {
+	return (S4() + S4() + "-" + S4() + "-4" + S4().substr(0,3) + "-" + S4() + "-" + S4() + S4() + S4()).toLowerCase();	
+} 
+
 var store_tagset=Reflux.createStore({
 	listenables: [actions]
 	,init:function() {
@@ -44,14 +51,21 @@ var store_tagset=Reflux.createStore({
 		var g=this.groupSelection(viewsels);
 		var valid=this.tagset[n].def.isValidSelection(g,viewsels);
 		if (!valid) return;
+		var guid=null;
+		var first=true;
+		if (g.length>1 || g[0]>1) guid=genGUID();		
+
 		for (var viewid in viewsels) {
-				var sels=viewsels[viewid];
-				for (var j=0;j<sels.length;j++){
-					var sel=sels[j];
-					var def=store_tagsets.defOfTag(tag);
-					var payload=def.initPayload(tag);
-					actions.createMarkup(viewid,sel[0],sel[1],payload,{edit:true,exclusive:exclusive});
-				}			
+			var sels=viewsels[viewid];
+			for (var j=0;j<sels.length;j++){
+				var sel=sels[j];
+				var def=store_tagsets.defOfTag(tag);
+				var payload=def.initPayload(tag,first,guid,sel,j,sels);
+				if (payload) {
+					actions.createMarkup(viewid,sel[0],sel[1],payload,{edit:first,exclusive:exclusive});
+				}
+				first=false;
+			}
 		}
 	}
 });

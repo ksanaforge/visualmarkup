@@ -28,6 +28,8 @@ body{overflow:hidden;}
 .dropdown-menu {font-size:100%;}
 .tagsetlabel {cursor:pointer;font-size:150%;}
 .tagsetlabel.disabled {color:silver;}
-.selected {background:highlight;}
+span.selected {background:highlight}
+span.highlighted {background:#FFFFC2}
+span.editing {background:yellow}
 
 .dictentry {font-size:150%;color:brown;}

@@ -4,28 +4,29 @@ var simple={
 	isValidSelection:function(grouped,viewselections) {
 		return (grouped.length>0);
 	}
-	,initPayload:function(tag) {
+	,initPayload:function(tag,first,guid,sel,nsel,sels) {
 		return {tag:tag,source:store_userinfo.getUserName()};
 	}
-	,shadow:false
 }
 var internal={
 	isValidSelection:function(grouped,viewselections) {
 		return (grouped.length==1 && grouped[0]>1);
 	}
-	,initPayload:function() {
+	,initPayload:function(tag,first,guid,sel,nsel,sels) {
 		return {tag:tag,source:store_userinfo.getUserName()};
 	}
-	,shadow:true
 }
 var intertext={
 	isValidSelection:function(grouped,viewselections) {
 		return (grouped.length>1)
 	}
-	,initPayload:function() {
-		return {tag:tag,source:store_userinfo.getUserName()};
+	,initPayload:function(tag,first,guid,sel,nsel,sels) {
+		if (first) {
+			return {id:guid,tag:tag,note:"",owner:store_userinfo.getUserName()};
+		} else {
+			return {id:guid,tag:tag,shadow:true};
+		}		
 	}
-	,shadow:true
 }
 var usernote={
 	isValidSelection:function(grouped,viewselections) {
@@ -33,10 +34,9 @@ var usernote={
 		return true;
 		//2 viewid has selection, who is the leading?
 	}
-	,initPayload:function() {
+	,initPayload:function(tag,guid,sel,nsel,sels) {
 		return {tag:tag,source:store_userinfo.getUserName(),note:""};
 	}
-	,shadow:true
 }
 var defs={
 	"simple":simple

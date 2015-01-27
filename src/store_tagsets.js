@@ -41,7 +41,15 @@ var store_tagsets=Reflux.createStore({
 		};
 		return null;
 	}
-
-
+	,typeOfTag:function(tag) {
+		for (var i=0;i<this.tagsets.length;i++){
+			var tagset=this.tagsets[i].tagset;
+			for (var j=0;j<tagset.length;j++) {
+				var tagdef=tagset[j];
+				if (tagdef.name==tag) return tagdef.type;
+			}
+		};
+		return null;		
+	}
 });
 module.exports=store_tagsets;

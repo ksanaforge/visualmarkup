@@ -3,10 +3,11 @@ var store=require("./store_trait");
 var store_tagsets=require("./store_tagsets");
 var store_selection=require("./store_selection");
 var actions=require("./actions_markup");
+var actions_selection=require("./actions_selection");
 var trait_templates={
-	"partofspeech":require("./trait_partofspeech")
-	,"readerexpress":require("./trait_readerexpress")
-	,"authorexpress":require("./trait_authorexpress")
+	"simple":require("./trait_simple")
+	,"intertext":require("./trait_intertext")
+	,"internal":require("./trait_internal")
 }
 var MarkupSearch=require("./markupsearch");
 
@@ -24,21 +25,27 @@ var Trait=React.createClass({
 	,componentWillUnmount:function() {
 		this.commitChange();
 	}
-	,onData:function(viewid,nmarkup,markup){
+	,onData:function(viewid,markup,nmarkup,related){
 		this.commitChange();
 
 		if (!markup) {
-			this.setState({template:null,markup:null,modified:false});	
+			this.setState({template:null,markup:null,modified:false});
+			actions_selection.clearHighlights();
 			return;
 		}
 
-		var group=store_tagsets.tagsetOfTag(markup[2].tag);
-		if (!group) {
-			return;
-		}
-		var template=trait_templates[group];
+		var type=store_tagsets.typeOfTag(markup[2].tag);
+		if (!type) return;
+		var template=trait_templates[type];
 		this.setState({template:template,markup:markup,viewid:viewid,nmarkup:nmarkup,modified:false});
-		actions.setSelection([[markup[0],markup[1]]],viewid);
+		var highlights={};
+		highlights[viewid]=[ [markup[0],markup[1] ]];
+		for (var i in related) {
+			if (!highlights[i]) highlights[i]=[];
+			var ranges=related[i].map(function(m){return [m[0],m[1]];});
+			highlights[i]=highlights[i].concat(ranges);
+		}
+		actions_selection.setHighlights(highlights);
 	}
 	,onChanged:function(){
 		this.setState({modified:true});
@@ -50,12 +57,12 @@ var Trait=React.createClass({
 		var out=[];
 		for (var view in this.state.viewselections) {
 			var selections=this.state.viewselections[view];
-			if (selections.length) out.push(<div key="view">View:{view}</div>)
+			if (selections.length) out.push(<div key={view+"view"}>View:{view}</div>)
 			for (var i=0;i<selections.length;i++) {
 				var sel=selections[i];
-				out.push(<div key={"s"+i}>{sel[0]+"-"+sel[1]}</div>);
+				out.push(<div key={view+"s"+i}>{sel[0]+"-"+sel[1]}</div>);
 			}
-			out.push(<hr key="hr"/>)
+			out.push(<hr key={view+"hr"}/>)
 		}
 		return out;
 	}
