@@ -108,8 +108,16 @@ var store_markup=Reflux.createStore({
 		var markups=this.viewmarkups[viewid].markups;
 		if (!markups) return;
 		if (n>=markups.length) return;
-		markups.splice(n,1);
-		this.viewmarkups[viewid].markups=markups;
+		var id=markups[n][2].id;
+		if (id) {
+			this.filterMarkup(function(m,viewid){
+				return (!m[2].id || m[2].id!=id);
+			});
+		} else {
+			markups.splice(n,1);
+			this.viewmarkups[viewid].markups=markups;
+		}
+		
 		this.onMarkupUpdated();
 	}
 	,sortMarkups:function() {
@@ -250,6 +258,22 @@ var store_markup=Reflux.createStore({
 				var ret=cb(markups[j],i);
 				if (ret) return ret;
 			}
+		}
+	}
+	,filterMarkup:function(cb) {//return no null to quit loop
+		for (var i in this.viewmarkups) {
+			if (this.hiddenViews.indexOf(i)>-1) {
+				continue;
+			}
+			
+			var markups=this.viewmarkups[i].markups;
+			var out=[];			
+			for (var j=0;j<markups.length;j++) {
+				if (cb(markups[j],i)) {
+					out.push(markups[j]);
+				}
+			}
+			this.viewmarkups[i].markups=out;
 		}
 	}
 	,getMasterMarkup:function(markup,viewid) { //return [mastermarkup,viewid]

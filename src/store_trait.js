@@ -9,12 +9,18 @@ var store_trait=Reflux.createStore({
 		if (markup) {
 			var master=store.getMasterMarkup(markup,viewid);
 			related=store.findShadow(master[0]);
+			if (master[0]!=markup) { //user click on shadow markup
+				//add master markup into related, for completing the highlight
+				if (!related[master[1]]) related[master[1]]=[];
+				related[master[1]].push(master[0]);
+			}
 			markup=master[0];
-			viewid=master[1];
 		}
 		this.viewid=viewid;
 		this.nmarkup=nmarkup; //this where user click
 		this.markup=markup;
+		//this.viewid+this.nmarkup point to current editing markup
+		//this.markup always point to master markup, where the payload is editable
 		this.trigger(this.viewid,this.markup,this.nmarkup, related);
 	}
 	,onRestore:function() {
