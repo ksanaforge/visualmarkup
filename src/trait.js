@@ -4,6 +4,7 @@ var store_tagsets=require("./store_tagsets");
 var store_selection=require("./store_selection");
 var actions=require("./actions_markup");
 var actions_selection=require("./actions_selection");
+var MarkupGroup=require("./markupgroup");
 var trait_templates={
 	"simple":require("./trait_simple")
 	,"intertext":require("./trait_intertext")
@@ -25,11 +26,11 @@ var Trait=React.createClass({
 	,componentWillUnmount:function() {
 		this.commitChange();
 	}
-	,onData:function(viewid,markup,nmarkup,related){
+	,onData:function(viewid,markup,nmarkup,group){
 		this.commitChange();
 
 		if (!markup) {
-			this.setState({template:null,markup:null,modified:false});
+			this.setState({template:null,markup:null,modified:false,group:group});
 			actions_selection.clearHighlights();
 			return;
 		}
@@ -39,10 +40,10 @@ var Trait=React.createClass({
 		var template=trait_templates[type];
 		this.setState({template:template,markup:markup,viewid:viewid,nmarkup:nmarkup,modified:false});
 		var highlights={};
-		highlights[viewid]=[ [markup[0],markup[1] ]];
-		for (var i in related) {
+		//highlights[viewid]=[ [markup[0],markup[1] ]];
+		for (var i in group) {
 			if (!highlights[i]) highlights[i]=[];
-			var ranges=related[i].map(function(m){return [m[0],m[1]];});
+			var ranges=group[i].map(function(m){return [m[0],m[1]];});
 			highlights[i]=highlights[i].concat(ranges);
 		}
 		actions_selection.setHighlights(highlights);
