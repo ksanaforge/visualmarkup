@@ -40,7 +40,7 @@ var store_markup=Reflux.createStore({
 	,layoutMarkups:function() {
 		var out=[];
 		for (var i in this.viewmarkups) {
-			if (this.hiddenviews && this.hiddenviews.indexOf(i)>-1) continue;
+			if (this.hiddenViews && this.hiddenViews.indexOf(i)>-1) continue;
 			var markups=this.viewmarkups[i].markups;
 			var positions=this.viewpositions[i];
 			if (!positions) continue ;

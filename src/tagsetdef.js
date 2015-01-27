@@ -14,7 +14,7 @@ var internal={
 		return (grouped.length==1 && grouped[0]>1);
 	}
 	,initPayload:function() {
-
+		return {tag:tag,source:store_userinfo.getUserName()};
 	}
 	,shadow:true
 }
@@ -23,7 +23,7 @@ var intertext={
 		return (grouped.length>1)
 	}
 	,initPayload:function() {
-
+		return {tag:tag,source:store_userinfo.getUserName()};
 	}
 	,shadow:true
 }
@@ -34,7 +34,7 @@ var usernote={
 		//2 viewid has selection, who is the leading?
 	}
 	,initPayload:function() {
-
+		return {tag:tag,source:store_userinfo.getUserName(),note:""};
 	}
 	,shadow:true
 }
