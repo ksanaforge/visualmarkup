@@ -22,9 +22,16 @@ var SelectionList=React.createClass({
 	,onTextChange:function() {
 		this.forceUpdate();
 	}
+	,sortView:function() {//naive approach
+		var keys=Object.keys(this.props.viewselections);
+		keys.sort(function(a,b){ return a>b?-1:b>a?1:0});
+		return keys;
+	}
 	,render:function() {
 		var out=[];
-		for (var view in this.props.viewselections) {
+		keys=this.sortView();
+		for (var j=0;j<keys.length;j++) {
+			var view=keys[j];
 			var selections=this.props.viewselections[view];
 			if (selections.length) out.push(<div key={view+"view"}>{viewName[view]}</div>)
 			for (var i=0;i<selections.length;i++) {

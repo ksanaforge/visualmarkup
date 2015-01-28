@@ -16,7 +16,7 @@ var SelectionList=require("./selectionlist");
 var Trait=React.createClass({
 	mixins:[Reflux.listenTo(store,"onData"),Reflux.listenTo(store_selection,"onSelection")],
 	getInitialState:function(){
-		return {template:null,modified:false,viewselections:{}}
+		return {template:null,modified:false,viewselections:{},highlights:{}};
 	}
 	,commitChange:function() {
 		if (!this.state.modified || !this.state.markup) return;
@@ -39,7 +39,6 @@ var Trait=React.createClass({
 		var type=store_tagsets.typeOfTag(markup[2].tag);
 		if (!type) return;
 		var template=trait_templates[type];
-		this.setState({template:template,markup:markup,viewid:viewid,nmarkup:nmarkup,modified:false});
 		var highlights={};
 		//highlights[viewid]=[ [markup[0],markup[1] ]];
 		for (var i in group) {
@@ -48,6 +47,7 @@ var Trait=React.createClass({
 			highlights[i]=highlights[i].concat(ranges);
 		}
 		actions_selection.setHighlights(highlights);
+		this.setState({highlights:highlights,template:template,markup:markup,viewid:viewid,nmarkup:nmarkup,modified:false});
 	}
 	,onChanged:function(){
 		this.setState({modified:true});
@@ -83,9 +83,10 @@ var Trait=React.createClass({
 					<button onClick={this.revertmarkup} title="Discard changes" className={"btn btn-warning"+disabled}>Revert</button>
 					<button onClick={this.deletemarkup} title="Delete this markup"  className={"btn btn-danger"+disabled_delete}>Delete</button>
 					</div>
-					
+
 
 					<MarkupSearch/>
+					<SelectionList viewselections={this.state.highlights}/>
 				   </div>
 		}
 	}
