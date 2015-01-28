@@ -83,7 +83,7 @@ var Trait=React.createClass({
 					<button onClick={this.revertmarkup} title="Discard changes" className={"btn btn-warning"+disabled}>Revert</button>
 					<button onClick={this.deletemarkup} title="Delete this markup"  className={"btn btn-danger"+disabled_delete}>Delete</button>
 					</div>
-
+					
 
 					<MarkupSearch/>
 				   </div>

@@ -33,7 +33,7 @@ var SelectionList=React.createClass({
 				if (this.props.showtext) text=stores[view].getTextBySelection(sel[0],sel[1]);
 				var npara=stores[view].getSegByVpos(sel[0]);
 				if (text && text.length>10) text=text.substr(0,10)+"...";
-				if ( !stores[view].vposInView(sel[0])) {
+				if ( !stores[view].vposInSight(sel[0])) {
 					cls="btn btn-default";
 					onclick=this.goSelection;
 				}

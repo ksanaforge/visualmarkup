@@ -3,6 +3,7 @@ var store=require("./store_tagsets");
 var store_tagset=require("./store_tagset");
 var actions=require("./actions_markup");
 var Reflux=require("reflux");
+var MarkupNav=require("./markupnav");
 var viewID= "markuppanel";
 var TagsetTab=React.createClass({
 	mixins:[Reflux.listenTo(store,"onTagSets"), Reflux.listenTo(store_tagset,"onTagsetStatus")],
@@ -81,6 +82,7 @@ var TagsetTab=React.createClass({
 			<Choices ref="markupchoice" data={this.getTagset(this.state.selected)} 
 				onSelect={this.onSelectTag} type={this.state.displayonoff?"checkbox":"button"} 
 				hotkey={true} checked={true} labelfor={true} linebreak={true} autovpos={true} vposInItem={this.vposInItem}/>
+			<div className="pull-right"><MarkupNav/></div>
 		</div>
 	}
 });

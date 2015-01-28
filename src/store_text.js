@@ -117,7 +117,7 @@ var store_dsl=Reflux.createStore({
 	,getKepanId:function() {
 		return this.kepanId;
 	}
-	,vposInView:function(vpos) {
+	,vposInSight:function(vpos) {
 		return (vpos>=this.startvpos && vpos<this.endvpos);
 	}
 	,getTextBySelection:function(vpos,len) {
@@ -238,7 +238,7 @@ var store_ds=Reflux.createStore({
 	,getKepanId:function() {
 		return this.kepanId;
 	}
-	,vposInView:function(vpos) {
+	,vposInSight:function(vpos) {
 		return (vpos>=this.startvpos && vpos<this.endvpos);
 	}
 	,getTextBySelection:function(vpos,len) {
