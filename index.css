@@ -1,6 +1,18 @@
 body{overflow:hidden;}
 
-.sutratext {font-size:200%;font-family: DFKai-SB}
+
+@font-face {
+  font-family: khangxi;
+  src: url(fonts/TpldKhangXiDictTrial.otf) format("truetype");
+}
+
+
+@font-face {
+  font-family: GutiFansong;
+  src: url(fonts/Wyue-GutiFangsong-NC_deliverable.otf);
+}
+
+.sutratext {font-size:200%;font-family: GutiFansong}
 .lecturetext {font-size:175%}
 .markupdesc {font-size:175%}
 .markupbutton {font-size:175%}
