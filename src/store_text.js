@@ -23,7 +23,18 @@ var	segToKepanId=function(db,seg,fieldname) {
 		while (vpos[i+1]==nearest) i++;
 		return parseInt(N[i]);
 };
-
+var getTextBySelection=function(db,vpos,len) {
+	var fseg=db.fileSegFromVpos(vpos);
+	//make sure the text is already in memory
+	var text=db.get(["filecontents",fseg.file,fseg.seg]);
+	var startvpos=db.fileSegToVpos(fseg.file,fseg.seg);
+	if (!text) return "";
+	return text.substr(vpos-startvpos+1,len);
+}
+var getSegByVpos=function(db,vpos) {
+	var fseg=db.fileSegFromVpos(vpos);
+	return db.fileSegToAbsSeg(fseg.file,fseg.seg);
+}
 var store_dsl=Reflux.createStore({
 	listenables: [actions],
 	opendb:function(cb) {
@@ -65,8 +76,10 @@ var store_dsl=Reflux.createStore({
 		this.currentseg=seg;
 		var fileseg=this.db.absSegToFileSeg(seg);
 		var kepanid=segToKepanId(this.db,seg);
-
 		this.kepanId=kepanid;
+		this.startvpos=this.db.fileSegToVpos(fileseg.file,fileseg.seg);
+		this.endvpos=this.db.fileSegToVpos(fileseg.file,fileseg.seg+1);
+
 		kse.highlightSeg(this.db,fileseg.file,fileseg.seg,{token:true},function(data){
 			this.trigger(data.text,seg,this.db);
 		},this);
@@ -103,6 +116,15 @@ var store_dsl=Reflux.createStore({
 	}
 	,getKepanId:function() {
 		return this.kepanId;
+	}
+	,vposInView:function(vpos) {
+		return (vpos>=this.startvpos && vpos<this.endvpos);
+	}
+	,getTextBySelection:function(vpos,len) {
+		return getTextBySelection(this.db,vpos,len);
+	}
+	,getSegByVpos:function(vpos) {
+		return getSegByVpos(this.db,vpos);
 	}
 });
 
@@ -194,6 +216,9 @@ var store_ds=Reflux.createStore({
 		var kepanid=segToKepanId(this.db,seg,"kw_jwn");
 		this.kepanId=kepanid;
 
+		this.startvpos=this.db.fileSegToVpos(fileseg.file,fileseg.seg);
+		this.endvpos=this.db.fileSegToVpos(fileseg.file,fileseg.seg+1);
+
 		kse.highlightSeg(this.db,fileseg.file,fileseg.seg,{token:true},function(data){
 			this.trigger(data.text,seg,this.db);
 		},this);
@@ -213,7 +238,15 @@ var store_ds=Reflux.createStore({
 	,getKepanId:function() {
 		return this.kepanId;
 	}
-
+	,vposInView:function(vpos) {
+		return (vpos>=this.startvpos && vpos<this.endvpos);
+	}
+	,getTextBySelection:function(vpos,len) {
+		return getTextBySelection(this.db,vpos,len);
+	}
+	,getSegByVpos:function(vpos) {
+		return getSegByVpos(this.db,vpos);
+	}
 });
 
 var matchEntries=function(entries,tofind) {
@@ -253,4 +286,4 @@ var store_dictionary=Reflux.createStore({
 	}
 });
 
-module.exports={ds:store_ds,dsl:store_dsl,kepan:store_kepan,dictionary:store_dictionary};
+module.exports={sutra:store_ds,lecture:store_dsl,kepan:store_kepan,dictionary:store_dictionary};

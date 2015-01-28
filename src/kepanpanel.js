@@ -28,7 +28,7 @@ var KepanPanel=React.createClass({
 	componentDidMount:function() { 
 		actions.getKepan();
 		actions.getSutraTextByKepanId(this.state.kepanid);
-		//actions.getLectureTextByKepanId(this.state.kepanid);
+		actions.getLectureTextByKepanId(this.state.kepanid);
 	},
 	render:function(){
 		return <div className="panel panel-info">

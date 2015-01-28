@@ -14,17 +14,25 @@ var TextNav=React.createClass({
 		this.setState({npara:seg||1});
 	}
 	,getInitialState:function() {
-		return {npara:1,sync:true}
+		return {npara:1,sync:true};
+	}
+	,clearSystemSelection:function() {
+		window.getSelection().empty();
 	}
 	,nextpara:function() {
 		this.props.actions.nextPara(this.props.viewid);
+		this.clearSystemSelection();
 	}
 	,prevpara:function() {
 		this.props.actions.prevPara(this.props.viewid);
+		this.clearSystemSelection();
 	}
 	,goPara:function(e) {
 		var n=parseInt(this.state.npara)||1;
-		if (e.key=="Enter")	this.props.actions.getTextBySeg(this.props.viewid,n);
+		if (e.key=="Enter")	{
+			this.props.actions.getTextBySeg(this.props.viewid,n);
+			this.clearSystemSelection();
+		}
 	}
 	,changed:function(e) {
 		//TODO , vpos can be prefixed with @, convert to npara and addHighlight

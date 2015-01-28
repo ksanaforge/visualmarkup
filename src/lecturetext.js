@@ -4,7 +4,7 @@ var actions_markup=require("./actions_markup");
 var domhelper=require("./domhelper");
 var Markable=require("./markable");
 var viewid="lecture";
-var store_dsl=require("./store_text").dsl;
+var store_dsl=require("./store_text").lecture;
 var TextNav=require("./textnav");
 var Controls=React.createClass({
 	nextpara:function() {

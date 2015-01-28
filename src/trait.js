@@ -11,11 +11,12 @@ var trait_templates={
 	,"internal":require("./trait_internal")
 }
 var MarkupSearch=require("./markupsearch");
+var SelectionList=require("./selectionlist");
 
 var Trait=React.createClass({
 	mixins:[Reflux.listenTo(store,"onData"),Reflux.listenTo(store_selection,"onSelection")],
 	getInitialState:function(){
-		return {template:null,modified:false}
+		return {template:null,modified:false,viewselections:{}}
 	}
 	,commitChange:function() {
 		if (!this.state.modified || !this.state.markup) return;
@@ -54,19 +55,7 @@ var Trait=React.createClass({
 	,onSelection:function(viewselections){
 		this.setState({viewselections:viewselections});
 	}
-	,renderSelection:function() {
-		var out=[];
-		for (var view in this.state.viewselections) {
-			var selections=this.state.viewselections[view];
-			if (selections.length) out.push(<div key={view+"view"}>View:{view}</div>)
-			for (var i=0;i<selections.length;i++) {
-				var sel=selections[i];
-				out.push(<div key={view+"s"+i}>{sel[0]+"-"+sel[1]}</div>);
-			}
-			out.push(<hr key={view+"hr"}/>)
-		}
-		return out;
-	}
+	
 	,renderTemplate:function() {
 		if (this.state.template) {
 			var ele=React.createFactory(this.state.template);
@@ -112,7 +101,7 @@ var Trait=React.createClass({
 					{this.renderTemplate()}
 					{this.renderControls()}
 					<br/>
-					{this.renderSelection()}
+					<SelectionList showtext={true} viewselections={this.state.viewselections}/>
 			</div>
 	}
 });
