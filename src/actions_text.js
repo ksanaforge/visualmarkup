@@ -6,12 +6,18 @@ var action_texts=require("reflux").createActions([
 		"getLectureTextByKepanId",
 		"getSutraTextBySeg",
 		"getLectureTextBySeg",
+		"getTextBySeg",
+		"nextPara",
+		"prevPara",
 		"searchDictionary" ,
 		"nextSutraPara",
 		"prevSutraPara",
 		"nextLecturePara",
 		"prevLecturePara",
 		"goKepanId",
-		"getTextByVpos"
+		"getTextByVpos",
+		"onSyncKepan",
+		"onSyncLecture",
+		"onSyncSutra"
 ]);
 module.exports=action_texts;

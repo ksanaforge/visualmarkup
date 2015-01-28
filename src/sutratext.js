@@ -3,24 +3,11 @@ var actions=require("./actions_text");
 var actions_markup=require("./actions_markup");
 var domhelper=require("./domhelper");
 var Markable=require("./markable");
-var Controls=React.createClass({
-	nextpara:function() {
-		actions.nextSutraPara();
-	},
-	prevpara:function() {
-		actions.prevSutraPara();
-	},
-	render:function() {
-		return <div className="text-center">經文
-				<div className="pull-right"><button onClick={this.prevpara}>上一段</button>
-				<button onClick={this.nextpara}>下一段</button>
-				</div>
-		    </div>
-	}
-});
+var store_ds=require("./store_text").ds;
+var TextNav=require("./textnav");
 var viewid="sutra";
 var Refertext=React.createClass({
-	mixins:[Reflux.listenTo(require("./store_text").ds,"sutratext")]
+	mixins:[Reflux.listenTo(store_ds,"sutratext")]
 	,getInitialState:function() {
 		return {text:[],db:null};
 	}
@@ -36,7 +23,8 @@ var Refertext=React.createClass({
 	}
 	,render:function() {
 		return <div className="panel panel-success">
-				<div className="panel-heading"><Controls/></div>
+				<div className="panel-heading">
+				<TextNav store={store_ds} actions={actions} viewid={viewid} title="經文"/></div>
 				<div  onClick={this.spanClicked} className="sutratext panel-body">
 					<Markable text={this.state.text} viewid={viewid} />
 		        </div>

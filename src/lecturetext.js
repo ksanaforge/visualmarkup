@@ -4,6 +4,8 @@ var actions_markup=require("./actions_markup");
 var domhelper=require("./domhelper");
 var Markable=require("./markable");
 var viewid="lecture";
+var store_dsl=require("./store_text").dsl;
+var TextNav=require("./textnav");
 var Controls=React.createClass({
 	nextpara:function() {
 		actions.nextLecturePara();
@@ -20,7 +22,7 @@ var Controls=React.createClass({
 	}
 });
 var Markuptext=React.createClass({
-	mixins:[Reflux.listenTo(require("./store_text").dsl,"lecturetext")],
+	mixins:[Reflux.listenTo(store_dsl,"lecturetext")],
 	getInitialState:function() {
 		return {text:[],db:null};
 	},
@@ -37,7 +39,9 @@ var Markuptext=React.createClass({
 	}, 
 	render:function() {
 		return <div className="panel panel-success">
-				<div className="panel-heading"><Controls/></div>
+				<div className="panel-heading">
+					<TextNav store={store_dsl} actions={actions} viewid={viewid} title="講義"/>
+				</div>
 				<div onClick={this.spanClicked} className="panel-body lecturetext">
 				<Markable text={this.state.text} viewid={viewid} />
 		        </div>
