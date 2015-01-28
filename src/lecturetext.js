@@ -39,8 +39,8 @@ var Markuptext=React.createClass({
 	}, 
 	render:function() {
 		return <div className="panel panel-success">
-				<div className="panel-heading">
-					<TextNav store={store_dsl} actions={actions} viewid={viewid} title="講義"/>
+				<div className="panel-heading clearfix">
+					<TextNav store={store_dsl} actions={actions} viewid={viewid} title="江味農居士金剛經講義"/>
 				</div>
 				<div onClick={this.spanClicked} className="panel-body lecturetext">
 				<Markable text={this.state.text} viewid={viewid} />

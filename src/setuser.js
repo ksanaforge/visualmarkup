@@ -21,7 +21,7 @@ var SetUser=React.createClass({
 
 		return  <div className="input-group">
 				<span className="input-group-addon">Username</span>
-				<input value={this.state.username} onChange={this.userchange} type="text" className="form-control"></input>
+				<input value={this.state.username} onChange={this.userchange} type="text" className="form-control larger-input"></input>
 		</div>
 		return <div>Username:<input /></div>
 	}

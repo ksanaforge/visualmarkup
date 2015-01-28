@@ -43,5 +43,7 @@ body{overflow:hidden;}
 span.selected {background:highlight}
 span.highlighted {background:#FFFFC2}
 span.editing {background:yellow}
-
+.dictpanel-title, .kepanpanel-title, .textpanel-title {font-size:180%;font-family:GutiFansong;}
 .dictentry {font-size:150%;color:brown;}
+.larger-input {font-size:150%;}
+input[type="checkbox"] {font-size:200%;width:20px;height:20px;}

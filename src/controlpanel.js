@@ -74,12 +74,12 @@ var Controlpanel=React.createClass({
 	,render:function() {
 		return <div>
 			<SetUser/>
-			<button onClick={this.save} className="btn btn-success">{this.state.savecaption}</button>
 			<span>
     			<label>
-      			Advance<input type="checkbox" onChange={this.setAdvance}/>
+      			 <input type="checkbox" onChange={this.setAdvance}/>Advance
     			</label>
   			</span>
+			<button onClick={this.save} className="btn btn-success pull-right">{this.state.savecaption}</button>
 			{this.renderDanger()}
 			<br/>
 			<div className={"label label-"+this.state.messagetype}>{this.state.message}</div>

@@ -12,9 +12,14 @@ var SearchDictionary=React.createClass({
 			if (e.key=="Enter") this.search();
 		},
 		render:function(){
-			return <div>教育部國語辭典
-				<input onKeyPress={this.onkey} ref="tofind" size="3" className="textinput"></input>
-				<button onClick={this.search}>查</button>
+			return <div>
+				<div className="input-group">
+				<span className="input-group-addon">教育部國語辭典</span>
+				<input onKeyPress={this.onkey} ref="tofind" size="3" className="textinput form-control"></input>
+				<span className="input-group-btn">
+				<button className="btn btn-default" onClick={this.search}>查</button>
+				</span>
+				</div>
 			</div>
 		}
 	});

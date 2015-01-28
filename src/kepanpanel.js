@@ -32,7 +32,7 @@ var KepanPanel=React.createClass({
 	},
 	render:function(){
 		return <div className="panel panel-info">
-			<div className="panel-heading text-center">科文</div>
+			<div className="panel-heading text-center kepanpanel-title">科文</div>
 			<div className="panel-body kepanview">
 			<StackToc data={this.state.toc} 
 			opts={{tocstyle:"ganzhi"}} showText={this.showText} current={this.state.current}/>

@@ -23,7 +23,7 @@ var Refertext=React.createClass({
 	}
 	,render:function() {
 		return <div className="panel panel-success">
-				<div className="panel-heading">
+				<div className="panel-heading clearfix">
 				<TextNav store={store_ds} actions={actions} viewid={viewid} title="經文"/></div>
 				<div  onClick={this.spanClicked} className="sutratext panel-body">
 					<Markable text={this.state.text} viewid={viewid} />

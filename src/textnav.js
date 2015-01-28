@@ -14,7 +14,7 @@ var TextNav=React.createClass({
 		this.setState({npara:seg||1});
 	}
 	,getInitialState:function() {
-		return {npara:1}
+		return {npara:1,sync:true}
 	}
 	,nextpara:function() {
 		this.props.actions.nextPara(this.props.viewid);
@@ -30,13 +30,31 @@ var TextNav=React.createClass({
 		//TODO , vpos can be prefixed with @, convert to npara and addHighlight
 		this.setState({npara:e.target.value});
 	}
+	,toggleSync:function(e) {
+		this.setState({sync:e.target.checked});
+	}
+	,syncpara:function() {
+
+	}
 	,render:function() {
-		return <div className="text-center">{this.props.title}
-				<div className="pull-right">
-				<button onClick={this.prevpara}>上一段</button>
-				<input size="2" 
-				   onChange={this.changed} onKeyPress={this.goPara} value={this.state.npara}/>
-				<button onClick={this.nextpara}>下一段</button>
+		return <div>
+				<div className="col-md-3">
+					<input checked={this.state.sync} className="largecheckbox" type="checkbox" onChange={this.toggleSync}/>
+					<button onClick={this.syncpara} className={"btn btn-success"+(this.state.sync?" disabled":"")}>同步</button>
+				</div>
+				<div className="col-md-5"><div className="text-center textpanel-title">{this.props.title}</div></div>
+
+				<div className="col-md-4">
+					<div className="input-group">
+					<span className="input-group-btn">
+						<button onClick={this.prevpara} className="btn btn-success">上一段</button>
+					</span>
+					<input size="2" className="text form-control larger-input"
+				   		onChange={this.changed} onKeyPress={this.goPara} value={this.state.npara}/>
+					<span className="input-group-btn">
+						<button onClick={this.nextpara} className="btn btn-success">下一段</button>
+					</span>
+					</div>
 				</div>
 		    </div>
 	}
