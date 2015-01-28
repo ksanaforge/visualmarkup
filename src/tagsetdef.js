@@ -16,9 +16,9 @@ var internal={
 		return {tag:tag,source:store_userinfo.getUserName()};
 	}
 }
-var intertext={
+var intertext={ //only allow one to many
 	isValidSelection:function(grouped,viewselections) {
-		return (grouped.length>1)
+		return (grouped.length==2 && (grouped[0]==1 || grouped[1]==1)) ;
 	}
 	,initPayload:function(tag,first,guid,sel,nsel,sels) {
 		if (first) {

@@ -96,7 +96,7 @@ var Markuptable=React.createClass({
 				}
 			}
 		}
-		return false;
+		return "";
 	}
 	,renderChar:function(item,idx){
 		var cls="";
