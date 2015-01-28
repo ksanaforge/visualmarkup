@@ -23,17 +23,19 @@ var TextNav=React.createClass({
 		this.props.actions.prevPara(this.props.viewid);
 	}
 	,goPara:function(e) {
-		if (e.key=="Enter")	this.props.actions.getTextBySeg(this.viewid,this.state.npara);
+		var n=parseInt(this.state.npara)||1;
+		if (e.key=="Enter")	this.props.actions.getTextBySeg(this.props.viewid,n);
 	}
 	,changed:function(e) {
 		//TODO , vpos can be prefixed with @, convert to npara and addHighlight
-		this.setState({npara:parseInt(e.target.value)||1});
+		this.setState({npara:e.target.value});
 	}
 	,render:function() {
 		return <div className="text-center">{this.props.title}
 				<div className="pull-right">
 				<button onClick={this.prevpara}>上一段</button>
-				<input size="2" onChange={this.changed} onKeyPress={this.goPara} value={this.state.npara}></input>
+				<input size="2" 
+				   onChange={this.changed} onKeyPress={this.goPara} value={this.state.npara}/>
 				<button onClick={this.nextpara}>下一段</button>
 				</div>
 		    </div>
