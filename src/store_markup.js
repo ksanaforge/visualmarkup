@@ -19,7 +19,6 @@ var store_markup=Reflux.createStore({
 	,onMarkupUpdated:function(){
 		var drawables=this.layoutMarkups();
 		if (drawables) this.trigger(drawables);
-		actions.cancelEdit();
 	}
 	,removeMarkupAtPos:function(markups,vpos,exclusive) {
 		return markups.filter(function(m){
@@ -87,6 +86,7 @@ var store_markup=Reflux.createStore({
 	}
 	,loadMarkups:function() {
 		var keys=this.docIDs();
+		actions.cancelEdit();
 		persistent.loadMarkups(keys,function(content){
 			for (var i=0;i<content.length;i++){
 				var viewid=keys[i].substr(0,keys[i].indexOf("."));
@@ -102,6 +102,7 @@ var store_markup=Reflux.createStore({
 	}
 	,onSetVisibleTags:function(visibletags,norefresh) {
 		this.visibletags=visibletags;
+		actions.cancelEdit();
 		if (!norefresh) this.onMarkupUpdated();
 	}
 	,onDeleteMarkup:function(viewid,n) {
@@ -119,6 +120,7 @@ var store_markup=Reflux.createStore({
 		}
 		
 		this.onMarkupUpdated();
+		actions.cancelEdit();
 	}
 	,sortMarkups:function() {
 		for (var viewid in this.viewmarkups) {
@@ -153,7 +155,7 @@ var store_markup=Reflux.createStore({
 					break;
 				}
 			}
-			actions.editMarkup(viewid,n,markup);
+			actions.editMarkup(viewid,markup,n);
 			this.editing={viewid:viewid,n:n};
 		}
 
@@ -221,6 +223,7 @@ var store_markup=Reflux.createStore({
 	,onAddHiddenView:function(viewid) {
 		if (viewid && this.hiddenViews.indexOf(viewid)==-1) {
 			this.hiddenViews.push(viewid);
+			actions.cancelEdit();
 			this.onMarkupUpdated();
 		}
 	}
@@ -228,6 +231,7 @@ var store_markup=Reflux.createStore({
 		var at=this.hiddenViews.indexOf(viewid);
 		if (at>-1) {
 			this.hiddenViews.splice(at,1);
+			actions.cancelEdit();
 			this.onMarkupUpdated();
 		}
 	}
@@ -244,10 +248,14 @@ var store_markup=Reflux.createStore({
 	,onSaveMarkup:function(viewid,n,markup,opts){
 		this.viewmarkups[viewid].markups[n]=markup;
 		opts=opts||{};
-		if (opts.forceUpdate) this.onMarkupUpdated();
+		if (opts.forceUpdate) {
+			actions.cancelEdit();
+			this.onMarkupUpdated();
+		}
 	}
 	,onClearAllMarkups:function(){
 		persistent.resetMarkups(this.markupsArrayForSerialize());
+		actions.cancelEdit();
 		this.onMarkupUpdated();
 	}
 	,forEachMarkup:function(cb) {//return no null to quit loop
@@ -302,6 +310,7 @@ var store_markup=Reflux.createStore({
 			this.viewmarkups[i]._rev=rev;
 		}
 		this.sortMarkups(); //make sure it is sorted
+		actions.cancelEdit();
 		this.onMarkupUpdated();
 	}
 

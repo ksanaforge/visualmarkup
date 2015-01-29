@@ -5,15 +5,15 @@ var store=require("./store_markup");
 var store_trait=Reflux.createStore({
 	listenables: [actions]
 	,onEditMarkup:function(viewid,markup,nmarkup) {
-		var group=null;
+		var group=null,master=null;
 		if (markup) {
 			if (markup[2].id) {
-				var master=store.getMasterMarkup(markup,viewid);			
+				master=store.getMasterMarkup(markup,viewid);			
 				var group=store.findShadow(master[0]);
 				if (!group[master[1]]) group[master[1]]=[];
 				group[master[1]].push(master[0]);
 			}
-			markup=master[0];
+			if (master && master[0]!=markup) markup=master[0];
 		}
 		this.viewid=viewid;
 		this.nmarkup=nmarkup; //this where user click

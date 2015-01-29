@@ -97,12 +97,17 @@ var Trait=React.createClass({
 		this.revert=true;
 		this.setState({modified:false});
 	}
+	,renderSelection:function() {
+		if (!this.state.template) {
+			return <SelectionList showtext={true} viewselections={this.state.viewselections}/>
+		}
+	}
 	,render:function() {
 		return <div className="traitpanel">
 					{this.renderTemplate()}
 					{this.renderControls()}
 					<br/>
-					<SelectionList showtext={true} viewselections={this.state.viewselections}/>
+					{this.renderSelection()}
 			</div>
 	}
 });
