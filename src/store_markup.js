@@ -4,6 +4,7 @@
 var Reflux=require("reflux");
 var actions=require("./actions_markup");
 var actions_text=require("./actions_text");
+
 var testmarkups=require("./testmarkups");
 var persistent=require("./persistent");
 var store_tagsets=require("./store_tagsets");
@@ -74,9 +75,9 @@ var store_markup=Reflux.createStore({
 				for (var k=start;k<end;k++) {
 					if (positions[k] && this.visibletags.indexOf(payload.tag)>-1 ) {//onscreen
 						// tag , position, nth, total in this group
-						var tagdef=store_tagsets.defOfTag(payload.tag);
+						var tagsetting=store_tagsets.settingOfTag(payload.tag);
 						out.push( {tagsetname:this.tagsetname,payload:payload,shadows:null, master:null,
-							rect:positions[k], nth:k-start,len:len,tagdef:tagdef } );
+							rect:positions[k], nth:k-start,len:len,tagsetting:tagsetting } );
 					}
 				}
 			}

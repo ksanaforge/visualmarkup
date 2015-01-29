@@ -9,6 +9,7 @@ var trait_templates={
 	"simple":require("./trait_simple")
 	,"intertext":require("./trait_intertext")
 	,"internal":require("./trait_internal")
+	,"punc":require("./trait_punc")
 }
 var MarkupSearch=require("./markupsearch");
 var SelectionList=require("./selectionlist");
@@ -40,7 +41,8 @@ var Trait=React.createClass({
 		if (!type) return;
 		var template=trait_templates[type];
 		var highlights={};
-		//highlights[viewid]=[ [markup[0],markup[1] ]];
+
+
 		for (var i in group) {
 			if (!highlights[i]) highlights[i]=[];
 			var ranges=group[i].map(function(m){return [m[0],m[1]];});

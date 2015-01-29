@@ -1,6 +1,6 @@
 var Reflux=require("reflux");
 var actions=require("./actions_markup");
-var tagsetdef=require("./tagsetdef");
+var tagsetdef=require("./tagtypedef");
 var store_tagsets=Reflux.createStore({
 	listenables: [actions]
 	,onLoadTagsets:function(){
@@ -21,12 +21,12 @@ var store_tagsets=Reflux.createStore({
 		}
 		this.trigger(this.tagsets);
 	}
-	,defOfTag:function(tag) {
+	,settingOfTag:function(tagname) {
 		for (var i=0;i<this.tagsets.length;i++){
 			var tagset=this.tagsets[i].tagset;
 			for (var j=0;j<tagset.length;j++) {
-				var tagdef=tagset[j];
-				if (tagdef.name==tag) return tagdef.def;
+				var tagsetting=tagset[j];
+				if (tagsetting.name==tagname) return tagsetting;
 			}
 		};
 		return null;

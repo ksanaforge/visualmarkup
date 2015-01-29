@@ -27,6 +27,12 @@ var SelectionList=React.createClass({
 		keys.sort(function(a,b){ return a>b?-1:b>a?1:0});
 		return keys;
 	}
+	,renderHelp:function() {
+		var keys=Object.keys(this.props.viewselections);
+		if (keys.length==1 && this.props.viewselections[keys[0]].length==1){
+			return <span>Press Ctrl to append selection</span>;
+		}
+	}
 	,render:function() {
 		var out=[];
 		keys=this.sortView();
@@ -50,7 +56,7 @@ var SelectionList=React.createClass({
 			}
 			out.push(<hr key={view+"hr"}/>)
 		}
-		return <div>{out}</div>;
+		return <div>{out}{this.renderHelp()}</div>;
 	}	
 });
 module.exports=SelectionList;

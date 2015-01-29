@@ -19,8 +19,15 @@ var store_selection=Reflux.createStore({
 		return -1;
 	}
 	,onClearSelection:function(viewid) {
-		actions.clearHighlights();
-		console.log("clear selection",viewid)
+		this.onSetSelection({},viewid);
+	}
+	,onClearSelections:function() {
+		var keys=Object.keys(this.selections);
+		var cleared={};
+		for (var i=0;i<keys.length;i++) {
+			cleared[keys[i]]=[];
+		}
+		this.onSetSelections(cleared);
 	}
 	,onAddSelection:function(viewid,existingselections,start,len,append) {
 		var selections=JSON.parse(JSON.stringify(existingselections));
