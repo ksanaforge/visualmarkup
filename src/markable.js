@@ -52,13 +52,18 @@ var Markuptable=React.createClass({
 		actions.tokenPositionUpdated( out, this.props.viewid);
 	}
 	,componentWillReceiveProps:function(nextProps) {
-		if (nextProps.text!=this.props.text) this.setState({ready:false});
+		if (nextProps.text!=this.props.text) {
+			actions.tokenPositionUpdated({}, this.props.viewid);//clear all markups
+			this.setState({ready:false});
+		} 
 	}
 	,componentWillUpdate:function() {
 		this.editing=store.getEditing(this.props.viewid);
 	}
 	,componentDidUpdate:function(){
-		if (!this.state.ready) this.updatePosition();
+		if (!this.state.ready) {
+			setTimeout(this.updatePosition,300);//browser need sometime to layout
+		}
 	}
 	,componentDidMount:function() {
 		actions.registerViewid(this.props.viewid);
