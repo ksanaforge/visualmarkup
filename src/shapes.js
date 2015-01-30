@@ -94,16 +94,15 @@ var drawInternal=function(ctx,inst,n,insts) {
 	ctx.beginPath();
 	ctx.strokeStyle=inst.tagsetting.color;
 	ctx.fillStyle=inst.tagsetting.fillcolor ||inst.tagsetting.color;
-	ctx.setLineDash([2]);
+	ctx.setLineDash([3]);
 	ctx.lineWidth=2;
-	
+	ctx.globalAlpha = 0.7;
 	var x1=inst.rect[0],y1=inst.rect[1],x2=inst.rect[2],y2=inst.rect[3];
 
 	ctx.moveTo(x2,y1);ctx.lineTo(x1,y1);
 	if (inst.nth==0) ctx.lineTo(x1,y2);
 	ctx.moveTo(x1,y2);ctx.lineTo(x2,y2);
 	if (inst.nth==inst.len-1) ctx.lineTo(x2,y1);
-
 
 	if (inst.master) {
 		var masterRect=masterCombinedRect(insts,inst.master);

@@ -12,9 +12,9 @@ var curveLink=function(ctx,rect,master) {
 	if (y3>y1) max_y=y3;
 	var x2=(x1+x3)/2, y2=max_y+20;
 */
-	ctx.moveTo(x1,y1);
+	ctx.moveTo(x1,y1+3);
 	//ctx.quadraticCurveTo(x2,y2,x3,y3);
-	ctx.lineTo(x3,y3);
+	ctx.lineTo(x3,y3+3);
 	ctx.stroke();
 
 	ctx.beginPath();

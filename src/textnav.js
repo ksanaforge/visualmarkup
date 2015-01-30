@@ -14,7 +14,7 @@ var TextNav=React.createClass({
 		this.setState({npara:seg||1});
 	}
 	,getInitialState:function() {
-		return {npara:1,sync:true};
+		return {npara:1,sync:false};
 	}
 	,clearSystemSelection:function() {
 		window.getSelection().empty();

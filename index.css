@@ -12,8 +12,8 @@ body{overflow:hidden;}
   src: url(fonts/Wyue-GutiFangsong-NC_deliverable.otf);
 }
 
-.sutratext {font-size:200%;font-family: GutiFansong}
-.lecturetext {font-size:175%}
+.sutratext {font-size:200%;font-family: GutiFansong;line-height:180%;}
+.lecturetext {font-size:175%;line-height:180%;}
 .markupdesc {font-size:175%}
 .markupbutton {font-size:175%}
 .panel {background-color:rgba(0, 0, 0, 0)} /* overwrite bootstrap , otherwise markup cannot be shown */

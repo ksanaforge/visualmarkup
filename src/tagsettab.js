@@ -17,10 +17,12 @@ var TagsetTab=React.createClass({
 		this.setState({updatepos:false});
 	}
 	,getInitialState:function(){
-		return {selected:3,tagsets:[],displayonoff:false,updatepos:true};
+		var selected=parseInt(localStorage.getItem("selected.tab"))||0;
+		return {selected:selected,tagsets:[],displayonoff:false,updatepos:true};
 	}
 	,onSelect:function(n,perv) {
 		this.setState({selected:n,updatepos:false});
+		localStorage.setItem("selected.tab",n);
 		if (n!=this.state.selected) {
 			this.setVisibility(n);
 			this.setState({updatepos:true});
