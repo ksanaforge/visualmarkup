@@ -15,6 +15,7 @@ var store_tagsets=Reflux.createStore({
 				if (!tag.def) {
 					console.error("unknown tag",tag.type)
 				} else {
+					tag.checked=true;
 					tag.def.type=type;
 				}
 			}

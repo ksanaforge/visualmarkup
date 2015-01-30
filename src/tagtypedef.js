@@ -46,7 +46,6 @@ var punc={
 
 var usernote={
 	isValidSelection:function(grouped,viewselections) {
-		console.log("validate intertext")
 		return true;
 		//2 viewid has selection, who is the leading?
 	}

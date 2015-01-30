@@ -51,10 +51,23 @@ var TagsetTab=React.createClass({
 	,onSelectTag:function(n,prev){
 		actions.doTag(n);
 	}
+	,onCheckTag:function(n,checked){
+		var tagset=this.getTagset(this.state.selected);
+		tagset[n].checked=checked;
+		this.setVisibility(this.state.selected,true);
+		this.forceUpdate();
+	}
+	,getTagsetName:function() {
+		var tagset=this.state.tagsets[this.state.selected||0];
+		if (tagset) return tagset.name;
+	}
 	,setVisibility:function(selected,norefresh) {
 		var tagset=this.getTagset(selected);
 		actions.setActiveTagset(this.state.tagsets[selected].name,tagset);
-		actions.setVisibleTags(tagset.map(function(t){return t.name}),norefresh);
+
+		var visibletags=[];
+		tagset.map(function(t){if (t.checked) return visibletags.push(t.name)});
+		actions.setVisibleTags(visibletags,norefresh);
 	}
 	,getTagset:function(n) {
 		var selectedset=this.state.tagsets[n];
@@ -82,7 +95,8 @@ var TagsetTab=React.createClass({
 				<input type="checkbox" checked={this.state.displayonoff} onChange={this.setDisplay}/>display
 			</label>
 			<Choices ref="markupchoice" data={this.getTagset(this.state.selected)} 
-				onSelect={this.onSelectTag} type={this.state.displayonoff?"checkbox":"button"} 
+				onSelect={this.onSelectTag} onCheck={this.onCheckTag} type={this.state.displayonoff?"checkbox":"button"} 
+				prefix={this.getTagsetName()} 
 				hotkey={true} checked={true} labelfor={true} linebreak={true} autovpos={true} vposInItem={this.vposInItem}/>
 		</div>
 	}
