@@ -106,10 +106,20 @@ var store_markup=Reflux.createStore({
 		actions.cancelEdit();
 		if (!norefresh) this.onMarkupUpdated();
 	}
-	,onDeleteMarkup:function(viewid,n) {
+	,findMarkupN:function(viewid,markup) {
 		var markups=this.viewmarkups[viewid].markups;
 		if (!markups) return;
-		if (n>=markups.length) return;
+		for (var i=0;i<markups.length;i++) {
+			if (markups[i]==markup) return i;
+		}
+		return -1;
+	}
+	,onDeleteMarkup:function(viewid,markup) {
+		var markups=this.viewmarkups[viewid].markups;
+		if (!markups) return;
+		var n=this.findMarkupN(viewid,markup);
+		if (n==-1) return;
+
 		var id=markups[n][2].id;
 		if (id) {
 			this.filterMarkup(function(m,viewid){
@@ -119,7 +129,7 @@ var store_markup=Reflux.createStore({
 			markups.splice(n,1);
 			this.viewmarkups[viewid].markups=markups;
 		}
-		
+		this.sortMarkups();
 		this.onMarkupUpdated();
 		actions.cancelEdit();
 	}

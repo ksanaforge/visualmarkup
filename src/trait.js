@@ -17,7 +17,7 @@ var SelectionList=require("./selectionlist");
 var Trait=React.createClass({
 	mixins:[Reflux.listenTo(store,"onData"),Reflux.listenTo(store_selection,"onSelection")],
 	getInitialState:function(){
-		return {template:null,modified:false,viewselections:{},highlights:{}};
+		return {template:null,modified:false,viewselections:{},markupselections:{}};
 	}
 	,commitChange:function() {
 		if (!this.state.modified || !this.state.markup) return;
@@ -28,7 +28,7 @@ var Trait=React.createClass({
 	,componentWillUnmount:function() {
 		this.commitChange();
 	}
-	,onData:function(viewid,markup,nmarkup,group){
+	,onData:function(viewid,markup,nmarkup,group,markupselections){
 		this.commitChange();
 
 		if (!markup) {
@@ -36,20 +36,11 @@ var Trait=React.createClass({
 			actions_selection.clearHighlights();
 			return;
 		}
-
 		var type=store_tagsets.typeOfTag(markup[2].tag);
 		if (!type) return;
 		var template=trait_templates[type];
-		var highlights={};
-
-
-		for (var i in group) {
-			if (!highlights[i]) highlights[i]=[];
-			var ranges=group[i].map(function(m){return [m[0],m[1]];});
-			highlights[i]=highlights[i].concat(ranges);
-		}
-		actions_selection.setHighlights(highlights);
-		this.setState({highlights:highlights,template:template,markup:markup,viewid:viewid,nmarkup:nmarkup,modified:false});
+		actions_selection.setHighlights(markupselections);
+		this.setState({markupselections:markupselections,template:template,markup:markup,viewid:viewid,nmarkup:nmarkup,modified:false});
 	}
 	,onChanged:function(){
 		this.setState({modified:true});
@@ -88,13 +79,13 @@ var Trait=React.createClass({
 
 
 					<MarkupSearch/>
-					<SelectionList viewselections={this.state.highlights}/>
+					<SelectionList viewselections={this.state.markupselections}/>
 				   </div>
 		}
 	}
 	,deletemarkup:function() {
-		actions.deleteMarkup(this.state.viewid,this.state.nmarkup);
-		actions_selection.setSelections(this.state.highlights);
+		actions.deleteMarkup(this.state.viewid,this.state.markup);
+		actions_selection.setSelections(this.state.markupselections);
 	}
 	,revertmarkup:function() {
 		this.revert=true;

@@ -7,6 +7,7 @@ var action_markups=require("reflux").createActions([
 		"editMarkupAtPos",
 		"saveMarkup",
 		"deleteMarkup",
+		"deleteEditingMarkup",
 		"cancelEdit",
 		"markupUpdated",
 		"setVisibleTags",
