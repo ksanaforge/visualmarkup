@@ -33,12 +33,12 @@ var maincomponent = React.createClass({
 			</div>
 			<div className="dictpanel col-md-3">
 				<div className="panel panel-warning">
-					<div className="panel-heading text-center">控制台</div>
+					<div className="panel-heading text-center">Visual Semantic Markup System</div>
 					<div className="panel-body"><ControlPanel/></div>
 				</div>
 				
 				<div className="panel panel-warning">
-					<div className="panel-heading text-center">標記屬性</div>
+					<div className="panel-heading text-center">Tag Attributes and Selection</div>
 					<div className="panel-body"><Trait/></div>
 				</div>
 				

@@ -94,6 +94,7 @@ var Trait=React.createClass({
 	}
 	,deletemarkup:function() {
 		actions.deleteMarkup(this.state.viewid,this.state.nmarkup);
+		actions_selection.setSelections(this.state.highlights);
 	}
 	,revertmarkup:function() {
 		this.revert=true;

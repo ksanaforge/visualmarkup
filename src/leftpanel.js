@@ -15,10 +15,10 @@ var LeftPanel=React.createClass({
 		return <div>
 			<div>
 				<ul className="nav nav-tabs" onClick={this.switchtab}>
-					<li><a href="#kepan" data-toggle="tab">科文</a></li>
+					<li><a href="#kepan" data-toggle="tab">TOC</a></li>
 					<li className="active">
-					    <a href="#markup" data-viewid={mpviewid} data-toggle="tab">標籤集</a></li>
-					<li><a href="#dictionary" data-toggle="tab">辭典</a></li>
+					    <a href="#markup" data-viewid={mpviewid} data-toggle="tab">Tagset</a></li>
+					<li><a href="#dictionary" data-toggle="tab">Dictionary</a></li>
 				</ul>
 			</div>
 			<div className="tab-content">

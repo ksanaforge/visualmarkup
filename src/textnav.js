@@ -48,19 +48,19 @@ var TextNav=React.createClass({
 		return <div>
 				<div className="col-md-3">
 					<input checked={this.state.sync} className="largecheckbox" type="checkbox" onChange={this.toggleSync}/>
-					<button onClick={this.syncpara} className={"btn btn-success"+(this.state.sync?" disabled":"")}>同步</button>
+					<button onClick={this.syncpara} className={"btn btn-success"+(this.state.sync?" disabled":"")}>Sync</button>
 				</div>
 				<div className="col-md-5"><div className="text-center textpanel-title">{this.props.title}</div></div>
 
 				<div className="col-md-4">
 					<div className="input-group">
 					<span className="input-group-btn">
-						<button onClick={this.prevpara} className="btn btn-success">上一段</button>
+						<button onClick={this.prevpara} className="btn btn-success">Previous</button>
 					</span>
 					<input size="2" className="text form-control larger-input"
 				   		onChange={this.changed} onKeyPress={this.goPara} value={this.state.npara}/>
 					<span className="input-group-btn">
-						<button onClick={this.nextpara} className="btn btn-success">下一段</button>
+						<button onClick={this.nextpara} className="btn btn-success">Next</button>
 					</span>
 					</div>
 				</div>
