@@ -1,4 +1,5 @@
 var Reflux=require("reflux");
+var store_markup=require("./store_markup");
 var TextNav=React.createClass({
 	mixins:[Reflux.ListenerMixin]
 	,propTypes:{
@@ -11,10 +12,11 @@ var TextNav=React.createClass({
 		this.listenTo(this.props.store,this.onData);
 	}
 	,onData:function(text,seg) {
-		this.setState({npara:seg||1});
+		this.setState({npara:seg||0});
+		this.syncpara();	
 	}
 	,getInitialState:function() {
-		return {npara:1,sync:false};
+		return {npara:1,sync:true};
 	}
 	,clearSystemSelection:function() {
 		window.getSelection().empty();
@@ -42,7 +44,11 @@ var TextNav=React.createClass({
 		this.setState({sync:e.target.checked});
 	}
 	,syncpara:function() {
-
+		var kepanid=this.props.store.getKepanId();
+		var others=store_markup.otherView(this.props.viewid);
+		for (var i=0;i<others.length;i++) {
+			this.props.actions.getTextByKepanId(others[i],kepanid);
+		}
 	}
 	,render:function() {
 		return <div>

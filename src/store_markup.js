@@ -29,6 +29,9 @@ var store_markup=Reflux.createStore({
 	,onRegisterViewid:function(viewid) {
 		if (this.viewIDs.indexOf(viewid)==-1) this.viewIDs.push(viewid);
 	}
+	,otherView:function(viewid) {
+		return this.viewIDs.filter(function(v){return v!=viewid});
+	}
 	,docIDs:function() {
 		return this.viewIDs.map(function(v){return v+"."+this.tagsetname},this);
 	}
@@ -206,25 +209,49 @@ var store_markup=Reflux.createStore({
 		}
 		
 	}
-	,onNextMarkup:function() {
-		if (!this.editing) return;
-		var markups=this.viewmarkups[this.editing.viewid].markups;
-		if (this.editing.n<markups.length-1) {
-			//TODO , skip invisible markup
-			this.editing.n++;
-			actions.editMarkup(this.editing.viewid,markups[this.editing.n],this.editing.n);
-			actions_text.getTextByVpos(markups[this.editing.n][0],this.editing.viewid);
+	,editNMarkup:function(markups,n) {
+		if (n<markups.length-1 && n>-1) {
+			this.editing.n=n;
+			this.markup=markups[this.editing.n];
+			actions.editMarkup(this.editing.viewid,this.markup,this.editing.n);
+			actions_text.getTextByVpos(this.markup[0],this.editing.viewid);
 		}
 	}
-	,onPrevMarkup:function(){
+	,onNextMarkup:function(opts) {
 		if (!this.editing) return;
 		var markups=this.viewmarkups[this.editing.viewid].markups;
-		if (this.editing.n>0) {
-			this.editing.n--;
+		opts=opts||{};
+		var n=this.editing.n;
+		var tag=markups[n][2].tag;
+		while (n<markups.length-1) {
 			//TODO , skip invisible markup
-			actions.editMarkup(this.editing.viewid,markups[this.editing.n],this.editing.n);
-			actions_text.getTextByVpos(markups[this.editing.n][0],this.editing.viewid);
+			var m=markups[++n][2];
+			if (m.shadow) continue;
+			if (!opts.sametag) {
+				break;
+			} else if (tag==m.tag) {
+				 break;
+			}
 		}
+		this.editNMarkup(markups,n);
+	}
+	,onPrevMarkup:function(opts){
+		if (!this.editing) return;
+		var markups=this.viewmarkups[this.editing.viewid].markups;
+		opts=opts||{};
+		var n=this.editing.n;
+		var tag=markups[n][2].tag;
+		while (n) {
+			//TODO , skip invisible markup
+			var m=markups[--n][2];
+			if (m.shadow) continue;
+			if (!opts.sametag) {
+				break;
+			} else if (tag==m.tag) {
+				 break;
+			}
+		}
+		this.editNMarkup(markups,n);
 	}
 	,onTokenPositionUpdated:function(positions,viewid) {
 		this.viewpositions[viewid]=positions;

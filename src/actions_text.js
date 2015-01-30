@@ -7,6 +7,7 @@ var action_texts=require("reflux").createActions([
 		"getSutraTextBySeg",
 		"getLectureTextBySeg",
 		"getTextBySeg",
+		"getTextByKepanId",
 		"nextPara",
 		"prevPara",
 		"searchDictionary" ,

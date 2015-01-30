@@ -58,10 +58,11 @@ var Trait=React.createClass({
 		}
 	}
 	,nextmarkup:function() {
-		actions.nextMarkup();
+		//todo , skip shahow, next same tag
+		actions.nextMarkup({sametag:true});
 	}
 	,prevmarkup:function() {
-		actions.prevMarkup();
+		actions.prevMarkup({sametag:true});
 	}
 	,renderControls:function(){
 		if (this.state.template) {

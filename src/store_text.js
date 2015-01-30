@@ -6,22 +6,24 @@ var preloadfields=[["fields"],["extra"]];
 var actions=require("./actions_text");
 
 var kepanIdToFileSeg=function(db,kepanid,fieldname) {
+	if (!kepanid)return 1;
 	var N=db.get(["fields",fieldname||"kw","n"]);
 	var vpos=db.get(["fields",fieldname||"kw","vpos"]);
 	var n=N.indexOf(kepanid.toString());
 	if (n==-1) return null;
 	var fileseg= db.fileSegFromVpos(vpos[n]);
-	fileseg.seg+=1;
 	return fileseg;
 };
 var	segToKepanId=function(db,seg,fieldname) {
 		var N=db.get(["fields",fieldname||"kw","n"]);
 		var vpos=db.get(["fields",fieldname||"kw","vpos"]);
 		var segoffsets=db.get("segoffsets");
+
 		var i=kde.bsearch(vpos, segoffsets[seg-1] ,true);
 		var nearest=vpos[i];
-		while (vpos[i+1]==nearest) i++;
+		if (i&&nearest>segoffsets[seg-1]) i--;
 		return parseInt(N[i]);
+		
 };
 var getTextBySelection=function(db,vpos,len) {
 	var fseg=db.fileSegFromVpos(vpos);
@@ -45,7 +47,7 @@ var store_dsl=Reflux.createStore({
 			}
 		},this);
 	}
-	,currentseg:1
+	,currentseg:0
 	,init:function() {
 		this.opendb();
 	}
@@ -57,8 +59,14 @@ var store_dsl=Reflux.createStore({
 				this.onGetLectureTextBySeg(seg);
 			}
 		},this);		
-	},
-	onGetTextByVpos:function(vpos,viewid) {
+	}
+	,onGetTextByKepanId:function(viewid,kepanid){
+		if (viewid!="lecture") return;
+		if (kepanid!=this.getKepanId()) {
+			this.onGetLectureTextByKepanId(kepanid);
+		}
+	}
+	,onGetTextByVpos:function(vpos,viewid) {
 		if (viewid!="lecture") return;
 		if (!this.db)return; //this is trigger by markup jump, db should be realy
 		var fileseg=this.db.fileSegFromVpos(vpos);
@@ -69,7 +77,7 @@ var store_dsl=Reflux.createStore({
 	}
 	,onGetTextBySeg:function(viewid,seg){
 		if (viewid!="lecture") return;
-		this.onGetSutraTextBySeg(seg);
+		this.onGetLectureTextBySeg(seg);
 	}
 	,onGetLectureTextBySeg:function(seg) {
 		if (seg==this.currentseg) return;
@@ -162,7 +170,7 @@ var store_kepan=Reflux.createStore({
 
 var store_ds=Reflux.createStore({
 	listenables: [actions]
-	,currentseg:1
+	,currentseg:0
 	,opendb:function(cb) {
 		kde.open("ds",{preload:preloadfields},function(err,db){
 			if (!err) cb.apply(this,[db]);
@@ -182,10 +190,16 @@ var store_ds=Reflux.createStore({
 			var fileseg=kepanIdToFileSeg(db,kepanid,"kw_jwn");
 			this.db=db;
 			if (fileseg){
-				var seg=db.fileSegToAbsSeg(fileseg.file,fileseg.seg-1);
+				var seg=db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
 				this.onGetSutraTextBySeg(seg,false);
 			};
 		});
+	}
+	,onGetTextByKepanId:function(viewid,kepanid){
+		if (viewid!="sutra") return;
+		if (kepanid!=this.getKepanId()) {
+			this.onGetSutraTextByKepanId(kepanid);
+		}
 	}
 	,onSyncLecture:function(totop) {
 		if (totop||store_lecture.getKepanId()!=this.kepanId) {
