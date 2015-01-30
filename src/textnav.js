@@ -1,5 +1,6 @@
 var Reflux=require("reflux");
 var store_markup=require("./store_markup");
+var stores=require("./store_text");
 var TextNav=React.createClass({
 	mixins:[Reflux.ListenerMixin]
 	,propTypes:{
@@ -11,12 +12,30 @@ var TextNav=React.createClass({
 	,componentDidMount:function() {
 		this.listenTo(this.props.store,this.onData);
 	}
-	,onData:function(text,seg) {
+	,checkSynable:function() {
+		var that=this;
+		setTimeout(function(){
+			var kepanid=that.props.store.getKepanId();
+			var others=store_markup.otherView(that.props.viewid);
+			var syncable=false;
+			for (var i=0;i<others.length;i++) {
+				if (kepanid!=stores[others[i]].getKepanId()) {
+					syncable=true;
+					break;
+				}
+			}
+
+			that.setState({syncable:syncable});
+		},500);
+	}
+	,onData:function(text,seg,db,opts) {
+		var opts=opts||{};
+		this.checkSynable();
 		this.setState({npara:seg||0});
-		this.syncpara();	
+		if (this.state.sync && !opts.nosync) this.syncpara();
 	}
 	,getInitialState:function() {
-		return {npara:1,sync:true};
+		return {npara:1,sync:true,syncable:false};
 	}
 	,clearSystemSelection:function() {
 		window.getSelection().empty();
@@ -44,17 +63,19 @@ var TextNav=React.createClass({
 		this.setState({sync:e.target.checked});
 	}
 	,syncpara:function() {
+		//if (!this.state.sync) return;
 		var kepanid=this.props.store.getKepanId();
 		var others=store_markup.otherView(this.props.viewid);
 		for (var i=0;i<others.length;i++) {
 			this.props.actions.getTextByKepanId(others[i],kepanid);
 		}
+		this.setState({syncable:false});
 	}
 	,render:function() {
 		return <div>
 				<div className="col-md-3">
 					<input checked={this.state.sync} className="largecheckbox" type="checkbox" onChange={this.toggleSync}/>
-					<button onClick={this.syncpara} className={"btn btn-success"+(this.state.sync?" disabled":"")}>Sync</button>
+					<button onClick={this.syncpara} className={"btn btn-success"+(this.state.syncable?"":" disabled")}>Sync</button>
 				</div>
 				<div className="col-md-5"><div className="text-center textpanel-title">{this.props.title}</div></div>
 

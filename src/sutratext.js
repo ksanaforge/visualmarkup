@@ -18,7 +18,10 @@ var Refertext=React.createClass({
 		actions_markup.editMarkupAtPos(viewid,vpos);
 	}
 	,sutratext:function(text,db){
-		if (text) this.setState({text:text});
+		if (text) {
+			this.setState({text:text});
+			actions.syncKepan();
+		}
 		if (this.state.db!=db) this.setState({db:db});
 	}
 	,render:function() {

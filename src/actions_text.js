@@ -17,8 +17,6 @@ var action_texts=require("reflux").createActions([
 		"prevLecturePara",
 		"goKepanId",
 		"getTextByVpos",
-		"onSyncKepan",
-		"onSyncLecture",
-		"onSyncSutra"
+		"syncKepan"
 ]);
 module.exports=action_texts;

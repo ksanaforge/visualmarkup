@@ -210,12 +210,15 @@ var store_markup=Reflux.createStore({
 		
 	}
 	,editNMarkup:function(markups,n) {
-		if (n<markups.length-1 && n>-1) {
+		if (n<markups.length && n>-1) {
 			this.editing.n=n;
 			this.markup=markups[this.editing.n];
 			actions.editMarkup(this.editing.viewid,this.markup,this.editing.n);
-			actions_text.getTextByVpos(this.markup[0],this.editing.viewid);
+			actions_text.getTextByVpos(this.markup[0],this.editing.viewid,true);
 		}
+	}
+	,isTagVisible:function(tag) {
+		return this.visibletags.indexOf(tag)>-1;
 	}
 	,onNextMarkup:function(opts) {
 		if (!this.editing) return;
@@ -224,13 +227,13 @@ var store_markup=Reflux.createStore({
 		var n=this.editing.n;
 		var tag=markups[n][2].tag;
 		while (n<markups.length-1) {
-			//TODO , skip invisible markup
-			var m=markups[++n][2];
-			if (m.shadow) continue;
+			var py=markups[++n][2];
+			if (py.shadow) continue;
+			if (!this.isTagVisible(py.tag))continue;
 			if (!opts.sametag) {
 				break;
-			} else if (tag==m.tag) {
-				 break;
+			} else if (tag==py.tag) {
+				break;
 			}
 		}
 		this.editNMarkup(markups,n);
@@ -241,13 +244,14 @@ var store_markup=Reflux.createStore({
 		opts=opts||{};
 		var n=this.editing.n;
 		var tag=markups[n][2].tag;
+
 		while (n) {
-			//TODO , skip invisible markup
-			var m=markups[--n][2];
-			if (m.shadow) continue;
+			var py=markups[--n][2];
+			if (py.shadow) continue;
+			if (!this.isTagVisible(py.tag))continue;
 			if (!opts.sametag) {
 				break;
-			} else if (tag==m.tag) {
+			} else if (tag==py.tag) {
 				 break;
 			}
 		}

@@ -56,7 +56,7 @@ var store_dsl=Reflux.createStore({
 			var fileseg=kepanIdToFileSeg(db,kepanid);
 			if (fileseg){
 				var seg=db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
-				this.onGetLectureTextBySeg(seg);
+				this.onGetLectureTextBySeg(seg,true);
 			}
 		},this);		
 	}
@@ -66,20 +66,20 @@ var store_dsl=Reflux.createStore({
 			this.onGetLectureTextByKepanId(kepanid);
 		}
 	}
-	,onGetTextByVpos:function(vpos,viewid) {
+	,onGetTextByVpos:function(vpos,viewid,nosync) {
 		if (viewid!="lecture") return;
 		if (!this.db)return; //this is trigger by markup jump, db should be realy
 		var fileseg=this.db.fileSegFromVpos(vpos);
 		if (fileseg) {
 			var seg=this.db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
-			this.onGetLectureTextBySeg(seg,false);
+			this.onGetLectureTextBySeg(seg,nosync);
 		}
 	}
-	,onGetTextBySeg:function(viewid,seg){
+	,onGetTextBySeg:function(viewid,seg,nosync){
 		if (viewid!="lecture") return;
-		this.onGetLectureTextBySeg(seg);
+		this.onGetLectureTextBySeg(seg,nosync);
 	}
-	,onGetLectureTextBySeg:function(seg) {
+	,onGetLectureTextBySeg:function(seg,nosync) {
 		if (seg==this.currentseg) return;
 		this.currentseg=seg;
 		var fileseg=this.db.absSegToFileSeg(seg);
@@ -89,7 +89,7 @@ var store_dsl=Reflux.createStore({
 		this.endvpos=this.db.fileSegToVpos(fileseg.file,fileseg.seg+1);
 
 		kse.highlightSeg(this.db,fileseg.file,fileseg.seg,{token:true},function(data){
-			this.trigger(data.text,seg,this.db);
+			this.trigger(data.text,seg,this.db,{nosync:nosync});
 		},this);
 	}
 	,onNextPara:function(viewid) {
@@ -118,9 +118,7 @@ var store_dsl=Reflux.createStore({
 		}
 	}
 	,onSyncKepan:function() {
-		if (store_kepan.getKepanId()!=this.kepanId) {
-			actions.goKepanId(this.kepanId) ; //this is not good, assuming kepanid start from 1
-		}
+		actions.goKepanId(this.kepanId) ; //this is not good, assuming kepanid start from 1
 	}
 	,getKepanId:function() {
 		return this.kepanId;
@@ -157,6 +155,8 @@ var store_kepan=Reflux.createStore({
 	},
 	onGoKepanId:function(n) {
 		if (!this.db) return ;
+		if (this.nkepan==n) return;
+		this.nkepan=n;
 		this.trigger(n,this.db);
 	},
 	onGetKepan:function(){
@@ -176,44 +176,42 @@ var store_ds=Reflux.createStore({
 			if (!err) cb.apply(this,[db]);
 		},this);
 	}
-	,onGetTextByVpos:function(vpos,viewid) {
+	,onGetTextByVpos:function(vpos,viewid,nosync) {
 		if (viewid!="sutra") return;
 		if (!this.db)return; //this is trigger by markup jump, db should be realy
 		var fileseg=this.db.fileSegFromVpos(vpos);
 		if (fileseg) {
-			var seg=this.db.fileSegToAbsSeg(fileseg.file,fileseg.seg); //this is a work-around
-			this.onGetSutraTextBySeg(seg,false);
+			var seg=this.db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
+			this.onGetSutraTextBySeg(seg,nosync);
 		}
 	}
-	,onGetSutraTextByKepanId:function(kepanid) {
+	,onGetSutraTextByKepanId:function(kepanid,nosync) {
 		this.opendb(function(db){
 			var fileseg=kepanIdToFileSeg(db,kepanid,"kw_jwn");
 			this.db=db;
 			if (fileseg){
 				var seg=db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
-				this.onGetSutraTextBySeg(seg,false);
+				this.onGetSutraTextBySeg(seg,nosync);
 			};
 		});
 	}
-	,onGetTextByKepanId:function(viewid,kepanid){
+	,onGetTextByKepanId:function(viewid,kepanid,nosync){
 		if (viewid!="sutra") return;
 		if (kepanid!=this.getKepanId()) {
-			this.onGetSutraTextByKepanId(kepanid);
+			this.onGetSutraTextByKepanId(kepanid,nosync);
 		}
 	}
 	,onSyncLecture:function(totop) {
 		if (totop||store_lecture.getKepanId()!=this.kepanId) {
-			actions.getLectureTextByKepanId(kepanid);
+			actions.getLectureTextByKepanId(kepanid,nosync);
 		}
 	}
 	,onSyncKepan:function() {
-		if (store_kepan.getKepanId()!=this.kepanId) {
-			actions.goKepanId(this.kepanId); //this is not good, assuming kepanid start from 1
-		}
+		actions.goKepanId(this.kepanId); //this is not good, assuming kepanid start from 1
 	}
-	,onGetTextBySeg:function(viewid,seg){
+	,onGetTextBySeg:function(viewid,seg,nosync){
 		if (viewid!="sutra") return;
-		this.onGetSutraTextBySeg(seg);
+		this.onGetSutraTextBySeg(seg,nosync);
 	}
 	,onNextPara:function(viewid) {
 		if (viewid!="sutra") return;
@@ -223,7 +221,7 @@ var store_ds=Reflux.createStore({
 		if (viewid!="sutra") return;
 		this.onPrevSutraPara();
 	}
-	,onGetSutraTextBySeg:function(seg) {
+	,onGetSutraTextBySeg:function(seg,nosync) {
 		if (seg==this.currentseg) return;
 		this.currentseg=seg;
 		var fileseg=this.db.absSegToFileSeg(seg);
@@ -234,20 +232,20 @@ var store_ds=Reflux.createStore({
 		this.endvpos=this.db.fileSegToVpos(fileseg.file,fileseg.seg+1);
 
 		kse.highlightSeg(this.db,fileseg.file,fileseg.seg,{token:true},function(data){
-			this.trigger(data.text,seg,this.db);
+			this.trigger(data.text,seg,this.db,{nosync:nosync});
 		},this);
 	}
 	,onNextSutraPara:function(){
 		if (!this.db) return;
 		var segnames=this.db.get("segnames");
 		if (this.currentseg+1>=segnames.length) return;
-		this.onGetSutraTextBySeg(this.currentseg+1,true);
+		this.onGetSutraTextBySeg(this.currentseg+1);
 	}
 	,onPrevSutraPara:function(){
 		if (!this.db) return;
 		var segnames=this.db.get("segnames");
 		if (this.currentseg<2) return;
-		this.onGetSutraTextBySeg(this.currentseg-1,true);
+		this.onGetSutraTextBySeg(this.currentseg-1);
 	}
 	,getKepanId:function() {
 		return this.kepanId;
