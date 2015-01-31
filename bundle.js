@@ -387,7 +387,7 @@ var absSegToFileSeg=function(absoluteseg) {
 
 var fileSegToAbsSeg=function(file,seg) {
 	if (file==0)return seg;
-	return this.get("filesegcount")[file-1]+seg;
+	return this.get("filesegcount")[file]+(seg);
 }
 /*
 var vposToFileSeg=function(engine,vpos) {
@@ -417,17 +417,25 @@ var findSeg=function(segname) {
 var getFileSegOffsets=function(i) {
 	var segoffsets=this.get("segoffsets");
 	var range=getFileRange.apply(this,[i]);
-	return segoffsets.slice(range.start,range.end+1);
+	if (segoffsets.subarray) {
+		return segoffsets.subarray(range.start,range.end+1);
+	} else {
+		return segoffsets.slice(range.start,range.end+1);	
+	}
+	
+
 }
-var fileSegFromVpos=function(vpos) {
+
+var fileSegFromVpos=function(vpos) { 
 	var segoffsets=this.get(["segoffsets"]);
 	var i=bsearch(segoffsets,vpos,true);
+	while (segoffsets[i]==vpos) i++;
 	return absSegToFileSeg.apply(this,[i]);
 }
 var fileSegToVpos=function(f,s) {
 	var segoffsets=this.get(["segoffsets"]);
 	var seg=fileSegToAbsSeg(f,s);
-	return segoffsets[seg];
+	return segoffsets[seg-1];
 }
 
 var getFileSegNames=function(i) {
@@ -985,11 +993,12 @@ var Create=function(path,opts,cb) {
 
 				if (opts.lazy) { 
 						var offset=L.offset;
-						L.sz.map(function(sz){
+						for (var i=0;i<L.sz.length;i++) {
+							var sz=L.sz[i];
 							o[o.length]=strsep+offset.toString(16)
 								   +strsep+sz.toString(16);
 							offset+=sz;
-						})
+						};
 				} else {
 					var taskqueue=[];
 					for (var i=0;i<L.count;i++) {
@@ -1384,16 +1393,22 @@ if (verbose) readLog=_readLog;
 
 var unpack_int = function (ar, count , reset) {
    count=count||ar.length;
-  var r = [], i = 0, v = 0;
+  var r = []
+  //var r=new Uint32Array(count);
+  var i = 0, v = 0,n=0;
   do {
 	var shift = 0;
 	do {
 	  v += ((ar[i] & 0x7F) << shift);
 	  shift += 7;	  
 	} while (ar[++i] & 0x80);
-	r.push(v); if (reset) v=0;
+	r.push(v);
+	//r[n++]=v;
+	if (reset) v=0;
 	count--;
   } while (i<ar.length && count);
+
+  //var rr=r.subarray(0,n);
   return {data:r, adv:i };
 }
 var Open=function(path,opts,cb) {
@@ -2351,8 +2366,11 @@ var addspan=function(text,startvpos){
 	engine=this;
 	var output="";
 	var tokens=engine.analyzer.tokenize(text).tokens;
+	var isSkip=engine.analyzer.isSkip;
+	var vpos=startvpos;
 	for (var i=0;i<tokens.length;i++) {
-		output+='<span vpos="'+(i+startvpos)+'">'+tokens[i]+"</span>";
+		output+='<span vpos="'+(vpos)+'">'+tokens[i]+"</span>";
+		if (!isSkip(tokens[i])) vpos++;
 	}		
 	return output;
 }
@@ -2360,8 +2378,11 @@ var addtoken=function(text,startvpos) {
 	engine=this;
 	var output=[];
 	var tokens=engine.analyzer.tokenize(text).tokens;
+	var isSkip=engine.analyzer.isSkip;
+	var vpos=startvpos;
 	for (var i=0;i<tokens.length;i++) {
-		output.push([tokens[i],i+startvpos]);
+		output.push([tokens[i],vpos]);
+		if (!isSkip(tokens[i])) vpos++;
 	}		
 	return output;
 }
@@ -3604,36 +3625,112 @@ var Choices=React.createClass({
 		data:React.PropTypes.array.isRequired
 		,selected:React.PropTypes.number
 		,onSelect:React.PropTypes.func
+		,onCheck:React.PropTypes.func
 		,type:React.PropTypes.string
 		,checked:React.PropTypes.bool
+		,prefix:React.PropTypes.string
 		,labelfor:React.PropTypes.bool
-	},
-	selected:0, //might receive from parent in the future
-	renderDropdownItem:function(item,idx) {
+		,vposInItem:React.PropTypes.func //return vpos in each item(for rendering markup style)
+	}
+	,selected:0 //might receive from parent in the future
+	,vposInItem:[]
+	,getDefaultProps:function(){
+		return {prefix:""};
+	}
+	,renderDropdownItem:function(item,idx) {
 		var disabled=item.disabled ? " disabled":"";
 		return (
-			E("li",{},
+			E("li",{key:"li"+idx},
 			   E("a",{href:"#", onClick:this.select, "data-n":idx},item.label))
 		);
-	},
-	renderItem:function(item,idx) {
+	}
+	,autovpos:function(str,item) { //do not use surrogate in desc
+		var out=[];
+		var startvpos=this.vpos;
+		var samples=str.split("|")
+		for (var j=0;j<samples.length;j++) {
+			var s=samples[j];
+			for (var i=0;i<s.length;i++) {
+				var key="k"+j+"_"+i;
+				var code=s.charCodeAt(i);
+				out.push(E("span",{key:key,"data-vpos":this.vpos},str[i]));
+				//if (code>=0x3400&&code<=0x9fff)	
+				this.vpos++;
+			}
+			if (this.vpos>startvpos) this.vposInItem.push( [startvpos+2,this.vpos-startvpos-2,item.name, j] );
+		}
+		return E("span",{className:"markupdesc"},out);
+	}
+	,componentWillUpdate:function() {
+		this.vposInItem=[];
+	}
+	,componentWillMount:function() {
+		this.selected=this.props.selected;
+	}
+	,componentDidUpdate:function() {
+		if (this.props.vposInItem) this.props.vposInItem(this.vposInItem);
+	}
+	,renderButton:function(item,idx) {
+		var label=item.label;
 		var disabled=item.disabled ? " disabled":"";
-		var disabled_label=item.disabledLabel ? " disabled":"";
-		var checked=(this.selected==idx) || this.props.checked;
-		var theinput=React.createElement("input", {type: this.props.type||"radio", key:"i"+idx,
-				defaultChecked:checked, className:disabled.trim(),name: "tagsettab", value: item.name}); 
+		if (this.props.hotkey && idx<10) {
+			var hotkey=(idx+1).toString();
+			if (hotkey.length>1) hotkey=hotkey.substr(1);
+			label=hotkey+label;
+		}
 
-		var thelabel=E("span", 
-			{key:"l"+idx,className:"tagsetlabel "+disabled_label.trim()}, item.label);
+		var thelinebreak=null;
+		if (this.props.linebreak) thelinebreak=E("br");		
+		var theinput=React.createElement("button",{className:"btn btn-default markupbutton"+disabled,key:"b"+idx},label);		
+		var description="",descriptionspans=null;
+		if (item.desc) description += " "+item.desc;
+		if (this.props.autovpos) descriptionspans=this.autovpos(description,item);
+		else descriptionspans=E("span",{className:"markupdesc"},description);
 
-		var labelfor=(this.props.labelfor)?E("label", null, theinput,thelabel):[theinput,thelabel];
-		return E("span", {"data-n": idx, key:"t"+idx,
-			className:(this.props.type||"radio")+"inline"+disabled+disabled_label},"　", labelfor);
-	},
-	select:function(e) {
+		return E("span", {"data-n": idx,
+			key:"t"+idx,className:(this.props.type||"radio")+"inline"+disabled}
+			," ", theinput,descriptionspans,thelinebreak);
+
+	}
+	,onchange:function(e) {
 		var target=e.target;
 		while (target) {
-			if (target.dataset&& target.dataset.n)	 break;
+			if (target.dataset&& target.dataset.n) break;
+			else  target=target.parentNode;
+		}
+		if (!target) return;
+
+		var n=parseInt(target.dataset.n);
+		if (this.props.onCheck) this.props.onCheck(n,e.target.checked);
+	}
+	,renderCheckbox_radio:function(item,idx) {
+		var checked=(this.selected==idx);
+		if (this.props.type=="checkbox") checked=item.checked;
+		var theinput=null;
+		var key=this.props.prefix+"_i"+idx;
+		theinput=React.createElement("input", {type: this.props.type||"radio", key:key, id:key,
+				onChange: this.onchange, checked:checked,name: "tagsettab"}); 
+
+		var thelabel=null;
+		var thelabel=E("span", {key:"l"+idx,className:"tagsetlabel "}, item.label);
+
+		var thelinebreak=null;
+		if (this.props.linebreak) thelinebreak=E("br");
+
+		var description="",descriptionspans=null;
+		if (item.desc) description += " "+item.desc;
+		if (this.props.autovpos) descriptionspans=this.autovpos(description,item);
+		else descriptionspans=E("span",{className:"markupdesc"},description);
+
+		var labelfor=(this.props.labelfor)?E("label", {"htmlFor":key}, theinput,thelabel):[theinput,thelabel];
+		return E("span", {"data-n": idx,
+			key:"t"+idx,className:" inline"}
+			," ", labelfor,descriptionspans,thelinebreak);
+	}
+	,select:function(e) {
+		var target=e.target;
+		while (target) {
+			if (target.dataset&& target.dataset.n) break;
 			else  target=target.parentNode;
 		}
 		if (!target) return;
@@ -3642,13 +3739,15 @@ var Choices=React.createClass({
 			return;
 		}
 		var n=parseInt(target.dataset.n);
-		if (this.selected!=n) {
+		if (this.selected!=n || this.props.type=="button") {
 			if (this.props.onSelect) this.props.onSelect(n, this.selected); //newly selected, previous selected
 			this.selected=n;
 		}
-	},
-	renderItems:function(){
-		return (this.props.data ||[]).map(this.renderItem);
+	}
+	,renderItems:function(){
+		var itemrenderer=this.renderCheckbox_radio;
+		if (this.props.type=="button") itemrenderer=this.renderButton;
+		return (this.props.data ||[]).map(itemrenderer);
 	}
 	,selectedLabel:function() {
 		if (!this.props.data.length) return "";
@@ -3666,6 +3765,7 @@ var Choices=React.createClass({
 			);
 	}
 	,render:function(){
+		this.vpos=1;
 		var renderItems=this.renderItems;
 		if (this.props.type=="dropdown") renderItems=this.renderDropdown;
 		return E("div", {onClick: this.select}, 
@@ -6403,24 +6503,49 @@ runtime.boot("visualmarkup",function(){
 	React.render(Main,document.getElementById("main"));
 });
 },{"./src/main.jsx":"C:\\ksana2015\\visualmarkup\\src\\main.jsx","ksana2015-webruntime":"C:\\ksana2015\\node_modules\\ksana2015-webruntime\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js":[function(require,module,exports){
-module.exports=require("reflux").createActions([
+var action_markups=require("reflux").createActions([
 		"loadTagsets",
-		"setTagsetName",
-		"setSelection",
+		"setActiveTagset",
 		"tokenPositionUpdated",
 		"createMarkup",
 		"editMarkup",
 		"editMarkupAtPos",
 		"saveMarkup",
 		"deleteMarkup",
+		"deleteEditingMarkup",
 		"cancelEdit",
 		"markupUpdated",
 		"setVisibleTags",
 		"clearAllMarkups",
-		"saveMarkups"
+		"saveMarkups",
+		"registerViewid",
+		"setVirtualMarkup",
+		"addHiddenView",
+		"removeHiddenView",
+		"doTag",
+		"clearMarkupInSelection",
+		"nextMarkup",
+		"prevMarkup"
 ]);
+module.exports=action_markups;
+},{"reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\actions_selection.js":[function(require,module,exports){
+var action_selection=require("reflux").createActions([
+		"setSelection",
+		"setSelections",
+		"addSelection",
+		"clearSelections",
+		"setHighlight",
+		"setHighlights",
+		"clearHighlights"
+]);
+module.exports=action_selection;
+},{"reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\actions_system.js":[function(require,module,exports){
+var actions_system=require("reflux").createActions([
+	"setUserName"
+]);
+module.exports=actions_system;
 },{"reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\actions_text.js":[function(require,module,exports){
-module.exports=require("reflux").createActions([
+var action_texts=require("reflux").createActions([
 		"getKepan",
 		"openDSL",
 		"openDS",
@@ -6428,17 +6553,114 @@ module.exports=require("reflux").createActions([
 		"getLectureTextByKepanId",
 		"getSutraTextBySeg",
 		"getLectureTextBySeg",
+		"getTextBySeg",
+		"getTextByKepanId",
+		"nextPara",
+		"prevPara",
 		"searchDictionary" ,
 		"nextSutraPara",
 		"prevSutraPara",
 		"nextLecturePara",
 		"prevLecturePara",
-		"goKepanId"
+		"goKepanId",
+		"getTextByVpos",
+		"syncKepan"
 ]);
-},{"reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\dictionarypanel.js":[function(require,module,exports){
+module.exports=action_texts;
+},{"reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\controlpanel.js":[function(require,module,exports){
+var Reflux=require("reflux");
+var savecaption="Save";
+var savedcaption="Markups Written.";
+var store=require("./store_markup");
+var actions=require("./actions_markup");
+var SetUser=require("./setuser"); 
+var  utf8_to_b64= function( str ) {
+    return btoa(unescape(encodeURIComponent( str )));
+};
+
+var Controlpanel=React.createClass({displayName: "Controlpanel",
+	getInitialState:function(){
+		return {savecaption:savecaption,dangerzone:false,message:""};
+	}
+	,restoresavecapcation:function() {
+		this.setState({savecaption:savecaption});
+	}
+	,reset:function() {
+		actions.clearAllMarkups();
+		this.setState({message:"All Markup Clear",messagetype:"success"});
+		setTimeout(this.clearMessage,5000);	
+	}
+	,clearMessage:function() {
+		this.setState({message:""});
+	}
+	,save:function() {
+		actions.saveMarkups(function(){
+			this.setState({message:"Markup Saved",messagetype:"success"});
+			setTimeout(this.clearMessage,5000);
+		},this);
+	}
+	,upload:function() {
+		var reader = new FileReader();
+		var that=this;
+		reader.onload = function() {
+		  try{
+		  	var json=JSON.parse(this.result);
+		  } catch (e) {
+		  	that.setState({message:"incorrect json format"+e,messagetype:"danger"})
+		  	setTimeout(that.clearMessage,5000);
+		  	return;
+		  }
+		  store.setRawMarkup(json);
+		}
+		var file=this.refs.uploadfile.getDOMNode().files[0];
+		reader.readAsText(file);
+	},
+	uploadfile:function(){
+		this.refs.uploadfile.getDOMNode().click();
+	}
+	,renderDownloadLink:function() {
+		var filename="sample-"+(new Date().toLocaleString())+".json";
+		var markupjson=store.getRawMarkup();
+		var jsonstr=JSON.stringify(markupjson,""," ");
+		var dataurl="data:application/octet-stream;base64,"+utf8_to_b64(jsonstr);
+
+		return React.createElement("a", {className: "btn btn-info", download: filename, href: dataurl}, "Export to JSON")
+	}
+	,renderDanger:function() {
+		if (this.state.dangerzone) {
+			return React.createElement("div", null, 
+		    React.createElement("input", {ref: "uploadfile", type: "file", onChange: this.upload, style: {display:"none"}}), 
+		    this.renderDownloadLink(), 
+		    React.createElement("hr", null), 
+		    React.createElement("button", {onClick: this.uploadfile, className: "btn btn-danger"}, "Import"), 
+			React.createElement("button", {onClick: this.reset, className: "btn btn-danger"}, "Delete all markups")	
+			)
+		}	
+	}
+	,setAdvance:function(e) {
+		this.setState({dangerzone:e.target.checked});
+	}
+
+	,render:function() {
+		return React.createElement("div", null, 
+			React.createElement(SetUser, null), 
+			React.createElement("span", null, 
+    			React.createElement("label", null, 
+      			 React.createElement("input", {type: "checkbox", onChange: this.setAdvance}), "Advance"
+    			)
+  			), 
+			React.createElement("button", {onClick: this.save, className: "btn btn-success pull-right"}, this.state.savecaption), 
+			this.renderDanger(), 
+			React.createElement("br", null), 
+			React.createElement("div", {className: "label label-"+this.state.messagetype}, this.state.message)
+		)
+	}
+});
+module.exports=Controlpanel;
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./setuser":"C:\\ksana2015\\visualmarkup\\src\\setuser.js","./store_markup":"C:\\ksana2015\\visualmarkup\\src\\store_markup.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\dictionarypanel.js":[function(require,module,exports){
 var Reflux=require("reflux");
 var store=require("./store_text").dictionary;
-var store_tagsetname=require("./store_tagsetname");
+var store_tagset=require("./store_tagset");
 var actions_text=require("./actions_text");
 var actions_markup=require("./actions_markup");
 var SearchDictionary=React.createClass({displayName: "SearchDictionary",
@@ -6450,16 +6672,21 @@ var SearchDictionary=React.createClass({displayName: "SearchDictionary",
 			if (e.key=="Enter") this.search();
 		},
 		render:function(){
-			return React.createElement("div", null, "教育部國語辭典", 
-				React.createElement("input", {onKeyPress: this.onkey, ref: "tofind", size: "3", className: "textinput"}), 
-				React.createElement("button", {onClick: this.search}, "查")
+			return React.createElement("div", null, 
+				React.createElement("div", {className: "input-group"}, 
+				React.createElement("span", {className: "input-group-addon"}, "教育部國語辭典"), 
+				React.createElement("input", {onKeyPress: this.onkey, ref: "tofind", size: "3", className: "textinput form-control"}), 
+				React.createElement("span", {className: "input-group-btn"}, 
+				React.createElement("button", {className: "btn btn-default", onClick: this.search}, "查")
+				)
+				)
 			)
 		}
 	});
 var partofspeechtag={"動":"verb","副":"adverb","形":"adjective","名":"noun","助":"particle"
 ,"介":"preposition","連":"conjunction","代":"pronoun"};
 var DictionaryPanel=React.createClass({displayName: "DictionaryPanel",
-	mixins:[Reflux.listenTo(store,"onData"),Reflux.listenTo(store_tagsetname,"onTagsetname")],
+	mixins:[Reflux.listenTo(store,"onData"),Reflux.listenTo(store_tagset,"onTagsetname")],
 	getInitialState:function() {
 		return {data:[],enableMarkup:false}
 	},
@@ -6510,7 +6737,7 @@ var DictionaryPanel=React.createClass({displayName: "DictionaryPanel",
 	}
 });
 module.exports=DictionaryPanel;
-},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./actions_text":"C:\\ksana2015\\visualmarkup\\src\\actions_text.js","./store_tagsetname":"C:\\ksana2015\\visualmarkup\\src\\store_tagsetname.js","./store_text":"C:\\ksana2015\\visualmarkup\\src\\store_text.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\domhelper.js":[function(require,module,exports){
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./actions_text":"C:\\ksana2015\\visualmarkup\\src\\actions_text.js","./store_tagset":"C:\\ksana2015\\visualmarkup\\src\\store_tagset.js","./store_text":"C:\\ksana2015\\visualmarkup\\src\\store_text.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\domhelper.js":[function(require,module,exports){
 var getTextUntilPunc=function(ele) {
 	var tofind="";
 	if (ele.nodeName!="SPAN")return;
@@ -6528,6 +6755,34 @@ var getTextUntilPunc=function(ele) {
 };
 
 module.exports={getTextUntilPunc:getTextUntilPunc};
+},{}],"C:\\ksana2015\\visualmarkup\\src\\drawing.js":[function(require,module,exports){
+
+var curveLink=function(ctx,rect,master) {
+	var x1=(rect[0]+rect[2])/2, y1=(rect[3]); 
+
+	var x3=(master[0]+master[2])/2, y3=(master[3]);
+
+	if (Math.abs(y3-y1)>Math.abs(master[1]-y1)) y3=master[1];
+	if (Math.abs(y1-y3)>Math.abs(rect[1]-y3)) y1=rect[1];
+
+/*
+	var max_y=y1;
+	if (y3>y1) max_y=y3;
+	var x2=(x1+x3)/2, y2=max_y+20;
+*/
+	ctx.moveTo(x1,y1+3);
+	//ctx.quadraticCurveTo(x2,y2,x3,y3);
+	ctx.lineTo(x3,y3+3);
+	ctx.stroke();
+
+	ctx.beginPath();
+	ctx.arc(x3 , y3 , 3, 0, Math.PI*2, true); 
+	ctx.closePath();
+	ctx.fill();
+
+}
+
+module.exports={curveLink:curveLink};
 },{}],"C:\\ksana2015\\visualmarkup\\src\\kepanpanel.js":[function(require,module,exports){
 var Reflux=require("reflux");
 var store=require("./store_text").kepan;
@@ -6559,11 +6814,11 @@ var KepanPanel=React.createClass({displayName: "KepanPanel",
 	componentDidMount:function() { 
 		actions.getKepan();
 		actions.getSutraTextByKepanId(this.state.kepanid);
-		//actions.getLectureTextByKepanId(this.state.kepanid);
+		actions.getLectureTextByKepanId(this.state.kepanid);
 	},
 	render:function(){
 		return React.createElement("div", {className: "panel panel-info"}, 
-			React.createElement("div", {className: "panel-heading text-center"}, "科文"), 
+			React.createElement("div", {className: "panel-heading text-center kepanpanel-title"}, "科文"), 
 			React.createElement("div", {className: "panel-body kepanview"}, 
 			React.createElement(StackToc, {data: this.state.toc, 
 			opts: {tocstyle:"ganzhi"}, showText: this.showText, current: this.state.current})
@@ -6573,13 +6828,35 @@ var KepanPanel=React.createClass({displayName: "KepanPanel",
 });
 
 module.exports=KepanPanel;
-},{"./actions_text":"C:\\ksana2015\\visualmarkup\\src\\actions_text.js","./store_text":"C:\\ksana2015\\visualmarkup\\src\\store_text.js","ksana2015-stacktoc":"C:\\ksana2015\\node_modules\\ksana2015-stacktoc\\index.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\lecturetext.js":[function(require,module,exports){
+},{"./actions_text":"C:\\ksana2015\\visualmarkup\\src\\actions_text.js","./store_text":"C:\\ksana2015\\visualmarkup\\src\\store_text.js","ksana2015-stacktoc":"C:\\ksana2015\\node_modules\\ksana2015-stacktoc\\index.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\keyboardshortcut.js":[function(require,module,exports){
+var actions=require("./actions_markup");
+
+var otherHotkey=function(e) {
+	if (e.which==46) {
+		actions.deleteEditingMarkup({setSelection:true});
+	}
+}
+var keyboardshortcut=function(e) {
+	if (!e.altKey) {
+		return otherHotkey(e);
+	}
+	if (e.which<48&&e.which>57) return;
+	//markup hot key
+	var n=e.which-49;
+	if (e.which==48) n=9;
+	actions.doTag(n);
+	return true;
+}
+module.exports=keyboardshortcut;
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js"}],"C:\\ksana2015\\visualmarkup\\src\\lecturetext.js":[function(require,module,exports){
 var Reflux=require("reflux");
 var actions=require("./actions_text");
 var actions_markup=require("./actions_markup");
 var domhelper=require("./domhelper");
 var Markable=require("./markable");
-var viewid=1;
+var viewid="lecture";
+var store_dsl=require("./store_text").lecture;
+var TextNav=require("./textnav");
 var Controls=React.createClass({displayName: "Controls",
 	nextpara:function() {
 		actions.nextLecturePara();
@@ -6596,7 +6873,7 @@ var Controls=React.createClass({displayName: "Controls",
 	}
 });
 var Markuptext=React.createClass({displayName: "Markuptext",
-	mixins:[Reflux.listenTo(require("./store_text").dsl,"lecturetext")],
+	mixins:[Reflux.listenTo(store_dsl,"lecturetext")],
 	getInitialState:function() {
 		return {text:[],db:null};
 	},
@@ -6613,7 +6890,9 @@ var Markuptext=React.createClass({displayName: "Markuptext",
 	}, 
 	render:function() {
 		return React.createElement("div", {className: "panel panel-success"}, 
-				React.createElement("div", {className: "panel-heading"}, React.createElement(Controls, null)), 
+				React.createElement("div", {className: "panel-heading clearfix"}, 
+					React.createElement(TextNav, {store: store_dsl, actions: actions, viewid: viewid, title: "江味農居士金剛經講義"})
+				), 
 				React.createElement("div", {onClick: this.spanClicked, className: "panel-body lecturetext"}, 
 				React.createElement(Markable, {text: this.state.text, viewid: viewid})
 		        )
@@ -6621,24 +6900,59 @@ var Markuptext=React.createClass({displayName: "Markuptext",
 	}
 });
 module.exports=Markuptext;
-},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./actions_text":"C:\\ksana2015\\visualmarkup\\src\\actions_text.js","./domhelper":"C:\\ksana2015\\visualmarkup\\src\\domhelper.js","./markable":"C:\\ksana2015\\visualmarkup\\src\\markable.js","./store_text":"C:\\ksana2015\\visualmarkup\\src\\store_text.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\main.jsx":[function(require,module,exports){
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./actions_text":"C:\\ksana2015\\visualmarkup\\src\\actions_text.js","./domhelper":"C:\\ksana2015\\visualmarkup\\src\\domhelper.js","./markable":"C:\\ksana2015\\visualmarkup\\src\\markable.js","./store_text":"C:\\ksana2015\\visualmarkup\\src\\store_text.js","./textnav":"C:\\ksana2015\\visualmarkup\\src\\textnav.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\leftpanel.js":[function(require,module,exports){
+var actions=require("./actions_markup");
+var KepanPanel=require("./kepanpanel");
+var MarkupPanel=require("./markuppanel");
+var DictionaryPanel=require("./dictionarypanel");
+var mpviewid="markuppanel";
+var LeftPanel=React.createClass({displayName: "LeftPanel",
+	switchtab:function(e) {
+		if (e.target.dataset.viewid==mpviewid) {
+			actions.removeHiddenView(mpviewid);
+		} else {
+			actions.addHiddenView(mpviewid);
+		}
+	}
+	,render:function() {
+		return React.createElement("div", null, 
+			React.createElement("div", null, 
+				React.createElement("ul", {className: "nav nav-tabs", onClick: this.switchtab}, 
+					React.createElement("li", null, React.createElement("a", {href: "#kepan", "data-toggle": "tab"}, "TOC")), 
+					React.createElement("li", {className: "active"}, 
+					    React.createElement("a", {href: "#markup", "data-viewid": mpviewid, "data-toggle": "tab"}, "Tagset")), 
+					React.createElement("li", null, React.createElement("a", {href: "#dictionary", "data-toggle": "tab"}, "Dictionary"))
+				)
+			), 
+			React.createElement("div", {className: "tab-content"}, 
+				React.createElement("div", {className: "tab-pane", id: "kepan"}, React.createElement(KepanPanel, {tocname: "金剛經講義"})), 
+				React.createElement("div", {className: "tab-pane active", id: "markup"}, React.createElement(MarkupPanel, null)), 
+				React.createElement("div", {className: "tab-pane", id: "dictionary"}, React.createElement(DictionaryPanel, null))
+			)		
+		)
+	}
+});
+module.exports=LeftPanel;
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./dictionarypanel":"C:\\ksana2015\\visualmarkup\\src\\dictionarypanel.js","./kepanpanel":"C:\\ksana2015\\visualmarkup\\src\\kepanpanel.js","./markuppanel":"C:\\ksana2015\\visualmarkup\\src\\markuppanel.js"}],"C:\\ksana2015\\visualmarkup\\src\\main.jsx":[function(require,module,exports){
 var SutraText=require("./sutratext");
 var LectureText=require("./lecturetext");
-var DictionaryPanel=require("./dictionarypanel");
-var KepanPanel=require("./kepanpanel");
 var Markuplayer=require("./markuplayer");
-var MarkupPanel=require("./markuppanel");
 var Trait=require("./trait");
+var ControlPanel=require("./controlpanel");
+var LeftPanel=require("./leftpanel");
+var keyboardshortcut=require("./keyboardshortcut");
 //var pageScrollMixin=require("ksana2015-components").pageScrollMixin; 
-	
 
 var maincomponent = React.createClass({displayName: "maincomponent",
 //	mixins:[pageScrollMixin],
 	componentDidMount:function() {
 		var that=this;
-		window.addEventListener('resize', function(event){
+		window.addEventListener('resize', function(e){
 		  that.forceUpdate();
 		});
+		window.addEventListener('keyup',function(e){
+			if (keyboardshortcut(e)) e.preventDefault();
+		})
 	},
 	onScrollEnd:function() {
 		this.forceUpdate();
@@ -6646,35 +6960,31 @@ var maincomponent = React.createClass({displayName: "maincomponent",
 	render: function() {
 		return React.createElement("div", null, 
 			React.createElement(Markuplayer, null), 
-			
-
 			React.createElement("div", {className: "tocpanel col-md-3"}, 
-				React.createElement("div", null, 
-					React.createElement("ul", {className: "nav nav-tabs"}, 
-						React.createElement("li", {className: "active"}, React.createElement("a", {href: "#kepan", "data-toggle": "tab"}, "科文")), 
-						React.createElement("li", null, React.createElement("a", {href: "#markup", "data-toggle": "tab"}, "標籤集")), 
-						React.createElement("li", null, React.createElement("a", {href: "#dictionary", "data-toggle": "tab"}, "辭典"))
-					)
-				), 
-				React.createElement("div", {className: "tab-content"}, 
-					React.createElement("div", {className: "tab-pane active", id: "kepan"}, React.createElement(KepanPanel, {tocname: "金剛經講義"})), 
-					React.createElement("div", {className: "tab-pane", id: "markup"}, React.createElement(MarkupPanel, null)), 
-					React.createElement("div", {className: "tab-pane", id: "dictionary"}, React.createElement(DictionaryPanel, null))
-
-				)
+				React.createElement(LeftPanel, null)
 			), 
 			React.createElement("div", {className: "textpanel col-md-6"}, 			
 				React.createElement(SutraText, null), 
 				React.createElement(LectureText, null)
 			), 
 			React.createElement("div", {className: "dictpanel col-md-3"}, 
-				React.createElement(Trait, null)
+				React.createElement("div", {className: "panel panel-warning"}, 
+					React.createElement("div", {className: "panel-heading text-center"}, "Visual Semantic Markup System"), 
+					React.createElement("div", {className: "panel-body"}, React.createElement(ControlPanel, null))
+				), 
+				
+				React.createElement("div", {className: "panel panel-warning"}, 
+					React.createElement("div", {className: "panel-heading text-center"}, "Tag Attributes and Selection"), 
+					React.createElement("div", {className: "panel-body"}, React.createElement(Trait, null))
+				)
+				
+
 			)
 		);
 	}
 });
 module.exports=maincomponent;
-},{"./dictionarypanel":"C:\\ksana2015\\visualmarkup\\src\\dictionarypanel.js","./kepanpanel":"C:\\ksana2015\\visualmarkup\\src\\kepanpanel.js","./lecturetext":"C:\\ksana2015\\visualmarkup\\src\\lecturetext.js","./markuplayer":"C:\\ksana2015\\visualmarkup\\src\\markuplayer.js","./markuppanel":"C:\\ksana2015\\visualmarkup\\src\\markuppanel.js","./sutratext":"C:\\ksana2015\\visualmarkup\\src\\sutratext.js","./trait":"C:\\ksana2015\\visualmarkup\\src\\trait.js"}],"C:\\ksana2015\\visualmarkup\\src\\markable.js":[function(require,module,exports){
+},{"./controlpanel":"C:\\ksana2015\\visualmarkup\\src\\controlpanel.js","./keyboardshortcut":"C:\\ksana2015\\visualmarkup\\src\\keyboardshortcut.js","./lecturetext":"C:\\ksana2015\\visualmarkup\\src\\lecturetext.js","./leftpanel":"C:\\ksana2015\\visualmarkup\\src\\leftpanel.js","./markuplayer":"C:\\ksana2015\\visualmarkup\\src\\markuplayer.js","./sutratext":"C:\\ksana2015\\visualmarkup\\src\\sutratext.js","./trait":"C:\\ksana2015\\visualmarkup\\src\\trait.js"}],"C:\\ksana2015\\visualmarkup\\src\\markable.js":[function(require,module,exports){
 /*
 	handle multiple selection
 	hover for some time on char with markup , show a button 
@@ -6682,25 +6992,41 @@ module.exports=maincomponent;
 
 var Reflux=require("reflux");
 var actions=require("./actions_markup");
+var actions_selection=require("./actions_selection");
 var store=require("./store_markup");
+var store_selection=require("./store_selection");
+var store_highlight=require("./store_highlight");
 var Markuplayer=require("./markuplayer");
 var textselection=require("./textselection");
 var Markuptable=React.createClass({displayName: "Markuptable",
-	getInitialState:function() {
-		return {ready:false,scrolling:false};
-	},
-	propTypes:{
+	mixins:[Reflux.listenTo(store_selection,"onSelection"),
+	        Reflux.listenTo(store_highlight,"onHighlight")]
+	,getInitialState:function() {
+		return {ready:false,scrolling:false,selections:[],highlights:[]};
+	}
+	,onSelection:function(selections,viewid) {
+		var sels=selections[viewid];
+		if (viewid!=this.props.viewid || //not my business
+		  JSON.stringify(sels)==JSON.stringify(this.state.selections)) return ; //nothing to update	
+		this.setState({selections:sels});
+	}
+	,onHighlight:function(highlights,viewid) {
+		var hls=highlights[viewid]||[];
+		if (viewid!=this.props.viewid || //not my business
+		  JSON.stringify(hls)==JSON.stringify(this.state.highlights)) return ; //nothing to update	
+		this.setState({highlights:hls});
+	}
+	,propTypes:{
 		text:React.PropTypes.array.isRequired
-		,viewid:React.PropTypes.number.isRequired
-	},
-	onScrollStart:function() {
+		,viewid:React.PropTypes.string.isRequired
+	}
+	,onScrollStart:function() {
 
-	},
-	onScrollEnd:function() {
+	}
+	,onScrollEnd:function() {
 		this.updatePosition();
-	},
-	selection:[],
-	updatePosition:function(){
+	}	
+	,updatePosition:function(){
 		var children=this.getDOMNode().children[0].children;
 		var out={};
 		for (var i=0;i<children.length;i++) {
@@ -6711,32 +7037,65 @@ var Markuptable=React.createClass({displayName: "Markuptable",
 			}
 		}
 		actions.tokenPositionUpdated( out, this.props.viewid);
-	},
-	componentWillReceiveProps:function(nextProps) {
-		if (nextProps.text!=this.props.text) this.setState({ready:false});
-	},
-	componentDidUpdate:function(){
-		if (!this.state.ready) this.updatePosition();
-	},
-	mouseUp:function(e) {
+	}
+	,componentWillReceiveProps:function(nextProps) {
+		if (nextProps.text!=this.props.text) {
+			actions.tokenPositionUpdated({}, this.props.viewid);//clear all markups
+			this.setState({ready:false});
+		} 
+	}
+	,componentWillUpdate:function() {
+		this.editing=store.getEditing(this.props.viewid);
+	}
+	,componentDidUpdate:function(){
+		if (!this.state.ready) {
+			setTimeout(this.updatePosition,300);//browser need sometime to layout
+		}
+	}
+	,componentDidMount:function() {
+		actions.registerViewid(this.props.viewid);
+	}
+	,mouseUp:function(e) {
       var sel=textselection();  
-      if (!sel) return;
-      if (e.ctrlKey && sel) {
-      	this.selection.push([sel.start,sel.len]);
-      } else {
-      	this.selection=[[sel.start,sel.len]];
-      }
-      actions.setSelection({selection:this.selection , viewid:this.props.viewid});
-      console.log(this.selection)
-	},
-	mouseOut:function() {
+      var selections=this.state.selections;
+      var oldlength=selections.length;
+      if (!sel)return;
 
-	},
-	mouseMove:function() {
+      actions.cancelEdit();
+      actions_selection.addSelection(this.props.viewid, selections, sel.start,sel.len , e.ctrlKey );
+	}
+	,mouseOut:function() {
 
-	},
-	renderChar:function(item,idx){
-		return React.createElement("span", {key: "c"+idx, "data-n": item[1]}, item[0])
+	}
+	,mouseMove:function() {
+
+	}
+	,inSelected:function(idx) {
+		for (var i=0;i<this.state.selections.length;i++) {
+			var sel=this.state.selections[i];
+			if (idx>=sel[0] && idx<sel[0]+sel[1]) return true;
+		}
+		return false;
+	}
+	,highlighedStyle:function(idx) {
+		for (var i=0;i<this.state.highlights.length;i++) {
+			var hl=this.state.highlights[i];
+			if (idx>=hl[0] && idx<hl[0]+hl[1]) {
+				if (this.editing && this.editing[0]==hl[0] && this.editing[1]==hl[1]) {
+					return "editing";
+				} else {
+					return "highlighted";	
+				}
+			}
+		}
+		return "";
+	}
+	,renderChar:function(item,idx){
+		var cls="";
+		if (this.inSelected(item[1])) cls="selected";
+		cls+=this.highlighedStyle(item[1]);
+		
+		return React.createElement("span", {className: cls, key: "c"+idx, "data-n": item[1]}, item[0])
 	},
 	render:function() {
 		return React.createElement("div", null, 
@@ -6752,7 +7111,16 @@ var Markuptable=React.createClass({displayName: "Markuptable",
 });
 
 module.exports=Markuptable;
-},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./markuplayer":"C:\\ksana2015\\visualmarkup\\src\\markuplayer.js","./store_markup":"C:\\ksana2015\\visualmarkup\\src\\store_markup.js","./textselection":"C:\\ksana2015\\visualmarkup\\src\\textselection.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\markuplayer.js":[function(require,module,exports){
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./actions_selection":"C:\\ksana2015\\visualmarkup\\src\\actions_selection.js","./markuplayer":"C:\\ksana2015\\visualmarkup\\src\\markuplayer.js","./store_highlight":"C:\\ksana2015\\visualmarkup\\src\\store_highlight.js","./store_markup":"C:\\ksana2015\\visualmarkup\\src\\store_markup.js","./store_selection":"C:\\ksana2015\\visualmarkup\\src\\store_selection.js","./textselection":"C:\\ksana2015\\visualmarkup\\src\\textselection.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\markupgroup.js":[function(require,module,exports){
+//render whole markups in same group,
+//click to bring markup into view, and set new editing viewid, n
+var MarkupGroup=React.createClass({displayName: "MarkupGroup",
+	render:function(){
+
+	}
+})
+module.exports=MarkupGroup;
+},{}],"C:\\ksana2015\\visualmarkup\\src\\markuplayer.js":[function(require,module,exports){
 var Reflux=require("reflux");
 var actions=require("./actions_markup");
 var store=require("./store_markup");
@@ -6766,8 +7134,7 @@ var Markuplayer=React.createClass({displayName: "Markuplayer",
 		var ctx = this.refs.thecanvas.getDOMNode().getContext("2d");
 		ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
 		for (var i=0;i<data.length;i++){
-			var tag=data[i][0],rect=data[i][1];
-			shapes.draw(tag,rect,ctx);
+			shapes.draw(ctx,data[i],i,data);
 		}
 	},
 	componentDidMount:function() {
@@ -6783,28 +7150,46 @@ var Markuplayer=React.createClass({displayName: "Markuplayer",
 	}
 });
 module.exports=Markuplayer;
-},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./shapes":"C:\\ksana2015\\visualmarkup\\src\\shapes.js","./store_markup":"C:\\ksana2015\\visualmarkup\\src\\store_markup.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\markuppanel.js":[function(require,module,exports){
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./shapes":"C:\\ksana2015\\visualmarkup\\src\\shapes.js","./store_markup":"C:\\ksana2015\\visualmarkup\\src\\store_markup.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\markupnav.js":[function(require,module,exports){
+var MarkupNav=React.createClass({displayName: "MarkupNav",
+	render:function(){
+		return React.createElement("div", null, React.createElement("a", {className: "btn btn-default"}, "First"), 
+			React.createElement("a", {className: "btn btn-default"}, "Prev"), 
+			React.createElement("a", {className: "btn btn-default"}, "Next"), 
+			React.createElement("a", {className: "btn btn-default"}, "Last")
+			)	
+	} 
+});
+module.exports=MarkupNav;
+},{}],"C:\\ksana2015\\visualmarkup\\src\\markuppanel.js":[function(require,module,exports){
 var TagsetTab=require("./tagsettab");
 var Trait=require("./trait");
 var actions=require("./actions_markup");
 
 var Reflux=require("reflux");
+var MarkupNav=require("./markupnav");
 var MarkupPanel=React.createClass({displayName: "MarkupPanel",
 	getInitialState:function() {
 		return {}
 	},
 	render:function(){
 		return React.createElement("div", {className: "markuppanel"}, 
-			React.createElement("div", null, 
-			React.createElement("div", {className: "col-md-1"}, "LOGO"), 
-			React.createElement("div", {className: "col-md-7"}, React.createElement(TagsetTab, null))
-			)
+			React.createElement("div", {className: "pull-right"}, React.createElement(MarkupNav, null)), 		
+			React.createElement(TagsetTab, null)
 		)
 	}
 });
 
 module.exports=MarkupPanel;
-},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./tagsettab":"C:\\ksana2015\\visualmarkup\\src\\tagsettab.js","./trait":"C:\\ksana2015\\visualmarkup\\src\\trait.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\persistent.js":[function(require,module,exports){
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./markupnav":"C:\\ksana2015\\visualmarkup\\src\\markupnav.js","./tagsettab":"C:\\ksana2015\\visualmarkup\\src\\tagsettab.js","./trait":"C:\\ksana2015\\visualmarkup\\src\\trait.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\markupsearch.js":[function(require,module,exports){
+var MarkupSearch=React.createClass({displayName: "MarkupSearch",
+	render:function() {
+		return React.createElement("div", null, 
+		React.createElement("button", {className: "btn btn-default disabled"}, "Similar Markup"))
+	}
+});
+module.exports=MarkupSearch;
+},{}],"C:\\ksana2015\\visualmarkup\\src\\persistent.js":[function(require,module,exports){
 var dbname="visualmarkup";
 
 var db=new PouchDB(dbname);
@@ -6862,20 +7247,113 @@ var saveMarkups=function(markups,cb,context) {
 }
 
 module.exports={loadMarkups:loadMarkups,saveMarkups:saveMarkups,resetMarkups:resetMarkups}
-},{}],"C:\\ksana2015\\visualmarkup\\src\\shapes.js":[function(require,module,exports){
+},{}],"C:\\ksana2015\\visualmarkup\\src\\selectionlist.js":[function(require,module,exports){
+var Reflux=require("reflux");
+var stores=require("./store_text");
+var viewName={"lecture":"講義","sutra":"經文"};
+var actions=require("./actions_text");
 
-var drawImportant=function(rect,ctx) {
-	var gra=ctx.createLinearGradient(0,0,0,(rect[3]-rect[1])*3);
+var SelectionList=React.createClass({displayName: "SelectionList",
+	mixins:[Reflux.ListenerMixin]
+	,propTypes:{
+		viewselections:React.PropTypes.object.isRequired
+		,showtext:React.PropTypes.bool
+	}
+	,goSelection:function(e) {
+		var vpos=parseInt(e.target.dataset.vpos);
+		var viewid=e.target.dataset.viewid;
+		actions.getTextByVpos(vpos,viewid);		
+	}
+	,componentDidMount:function(){
+		for (var i in stores) {
+			this.listenTo(stores[i], this.onTextChange);
+		}
+	}
+	,onTextChange:function() {
+		this.forceUpdate();
+	}
+	,sortView:function() {//naive approach
+		var keys=Object.keys(this.props.viewselections);
+		keys.sort(function(a,b){ return a>b?-1:b>a?1:0});
+		return keys;
+	}
+	,renderHelp:function() {
+		var keys=Object.keys(this.props.viewselections);
+		if (keys.length==1 && this.props.viewselections[keys[0]].length==1){
+			return React.createElement("span", null, "Press Ctrl to append selection");
+		}
+	}
+	,render:function() {
+		var out=[];
+		keys=this.sortView();
+		for (var j=0;j<keys.length;j++) {
+			var view=keys[j];
+			var selections=this.props.viewselections[view];
+			if (selections.length) out.push(React.createElement("div", {key: view+"view"}, viewName[view]))
+			for (var i=0;i<selections.length;i++) {
+				var sel=selections[i], cls="", onclick=null;
+				var text="";
+				if (this.props.showtext) text=stores[view].getTextBySelection(sel[0],sel[1]);
+				var npara=stores[view].getSegByVpos(sel[0]);
+				if (text && text.length>10) text=text.substr(0,10)+"...";
+				if ( !stores[view].vposInSight(sel[0])) {
+					cls="btn btn-default";
+					onclick=this.goSelection;
+				}
+				out.push(React.createElement("div", {key: view+"s"+i}, React.createElement("span", {onClick: onclick, className: cls, 
+					 "data-viewid": view, "data-vpos": sel[0]}, npara+"|"+sel[0]+"-"+sel[1]+" "
+					), React.createElement("span", null, text), React.createElement("br", null)));
+			}
+			out.push(React.createElement("hr", {key: view+"hr"}))
+		}
+		return React.createElement("div", null, out, this.renderHelp());
+	}	
+});
+module.exports=SelectionList;
+},{"./actions_text":"C:\\ksana2015\\visualmarkup\\src\\actions_text.js","./store_text":"C:\\ksana2015\\visualmarkup\\src\\store_text.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\setuser.js":[function(require,module,exports){
+var Reflux=require("reflux");
+var store=require("./store_userinfo");
+var actions=require("./actions_system");
+var SetUser=React.createClass({displayName: "SetUser",
+	mixins:[Reflux.listenTo(store,"onUser")]
+	,getInitialState:function() {
+		return {username:"",email:""};
+	}
+	,onUser:function(userinfo) {
+		this.setState({username:userinfo.name,email:userinfo.email});
+	}
+	,userchange:function(e) {
+		var username=e.target.value;
+		this.setState({username:e.target.value});
+		if (this.timer) clearTimeout(this.timer);
+		this.timer=setTimeout(function(){
+			actions.setUserName(username);
+		},1000);
+	},
+	render:function() {
+
+		return  React.createElement("div", {className: "input-group"}, 
+				React.createElement("span", {className: "input-group-addon"}, "Username"), 
+				React.createElement("input", {value: this.state.username, onChange: this.userchange, type: "text", className: "form-control larger-input"})
+		)
+		return React.createElement("div", null, "Username:", React.createElement("input", null))
+	}
+});
+module.exports=SetUser;
+},{"./actions_system":"C:\\ksana2015\\visualmarkup\\src\\actions_system.js","./store_userinfo":"C:\\ksana2015\\visualmarkup\\src\\store_userinfo.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\shapes.js":[function(require,module,exports){
+var drawing=require("./drawing");
+var drawImportant=function(ctx,inst) {
+	var gra=ctx.createLinearGradient(0,0,0,(inst.rect[3]-inst.rect[1])*3);
 	gra.addColorStop(0,"rgba(255, 0, 0, 0.2)");
 	gra.addColorStop(1,"rgba(0,0 , 255, 0.7)");
 	ctx.fillStyle=gra;
-	ctx.fillRect(rect[0],rect[1],rect[2]-rect[0],rect[3]-rect[1]);
+	ctx.fillinst.rect(inst.rect[0],inst.rect[1],inst.rect[2]-inst.rect[0],inst.rect[3]-inst.rect[1]);
 }
 
-var drawDoubt=function(rect,ctx) {
-	var cx=(rect[0]+rect[2])/2;
-	var cy=(rect[1]+rect[3])/2;
-	var r=(rect[3]-rect[1])/2 +1;
+var drawDoubt=function(ctx,inst) {
+	var cx=(inst.rect[0]+inst.rect[2])/2;
+	var cy=(inst.rect[1]+inst.rect[3])/2;
+	var r=(inst.rect[3]-inst.rect[1])/2 +1;
 
 	ctx.beginPath();
 	ctx.setLineDash([3])
@@ -6884,120 +7362,302 @@ var drawDoubt=function(rect,ctx) {
 	ctx.arc(cx,cy,r,0,2*Math.PI,false);
 	ctx.stroke();
 	//ctx.fillStyle="red";
-	//ctx.fillRect(rect[0],rect[3],rect[2]-rect[0],3);
+	//ctx.fillinst.rect(inst.rect[0],inst.rect[3],inst.rect[2]-inst.rect[0],3);
 }
-var PartOfSpeechColor={noun:"#F33",verb:"#993",adjective:"#66F",
-pronoun:"#7F7",preposition:"#383",conjunction:"#F0F"};
-var drawPartOfSpeech=function(rect,ctx,tag) {
+var drawSimple=function(ctx,inst) {
 	ctx.beginPath();
-	ctx.strokeStyle=PartOfSpeechColor[tag];
-	ctx.setLineDash([]);
-	ctx.lineWidth=3;
-	ctx.rect(rect[0],rect[1],rect[2]-rect[0],rect[3]-rect[1]);
+	ctx.strokeStyle=inst.tagsetting.color;
+	ctx.setLineDash([2]);
+	ctx.lineWidth=2;
+	var x1=inst.rect[0],y1=inst.rect[1],x2=inst.rect[2],y2=inst.rect[3];
+
+	ctx.moveTo(x2,y1);ctx.lineTo(x1,y1);
+	if (inst.nth==0) ctx.lineTo(x1,y2);
+	ctx.moveTo(x1,y2);ctx.lineTo(x2,y2);
+	if (inst.nth==inst.len-1) ctx.lineTo(x2,y1);
 	ctx.stroke();
 }
-var readerExperssColor={important2:"#F33"};
 
-var drawReaderExpress=function(rect,ctx,tag) {
-	var cx=(rect[0]+rect[2])/2;
-	var cy=(rect[1]+rect[3])/2;
-	var r=(rect[3]-rect[1])/2 +1;
+var drawReaderExpress=function(ctx,inst) {
+	var cx=(inst.rect[0]+inst.rect[2])/2;
+	var cy=(inst.rect[1]+inst.rect[3])/2;
+	var r=(inst.rect[3]-inst.rect[1])/2 +1;
 
 	ctx.beginPath();
 	ctx.setLineDash([3])
 	ctx.lineWidth=2;
-	ctx.strokeStyle=readerExperssColor[tag];
+	ctx.strokeStyle=inst.tagsetting.color;
 	ctx.arc(cx,cy,r,0,2*Math.PI,false);
 	ctx.stroke();
 }
+var drawIntertext=function(ctx,inst,n,insts){
+	var cx=(inst.rect[0]+inst.rect[2])/2;
+	var cy=(inst.rect[1]+inst.rect[3])/2;
+	var r=(inst.rect[3]-inst.rect[1])/2 +1;
 
-var painters={
-	important:drawImportant,doubt:drawDoubt, 
-	important2:drawReaderExpress,
-	noun:drawPartOfSpeech, 
-	verb:drawPartOfSpeech,
-	adjective:drawPartOfSpeech,
-	adverb:drawPartOfSpeech,
-	particle:drawPartOfSpeech,
-	pronoun:drawPartOfSpeech,
-	preposition:drawPartOfSpeech,
-	conjunction:drawPartOfSpeech};
+	ctx.beginPath();
+	ctx.setLineDash([3])
+	ctx.lineWidth=2;
+	ctx.strokeStyle=inst.tagsetting.color;
+	ctx.arc(cx,cy,r,0,2*Math.PI,false);
 
-var draw=function(tag,rect,ctx) {
-	var painter=painters[tag];
-	if (painter) painter(rect,ctx,tag);
+	if (inst.master) {
+		var x1=inst.master.rect[0],y1=inst.master.rect[3];
+		var x2=inst.rect[0],y2=inst.rect[1];
+		if (y1>y2) {
+			y1=inst.master.rect[1];
+			y2=inst.rect[3];
+		}
+		ctx.moveTo(x1,y1);
+		ctx.lineTo(x2,y2);
+	}
+	ctx.stroke();
+}
+var combinedRect=function(insts,n){
+	var i=n;
+	var inst=insts[i];
+	var x1=inst.rect[0],y1=inst.rect[1],x2=inst.rect[2],y2=inst.rect[3];
+	while (i<insts.length) {
+		x2=inst.rect[2],y2=inst.rect[3];
+		if (inst.nth==inst.len-1) break;
+		inst=insts[i++];
+	}
+	return [x1,y1,x2,y2];
+}
+var findMasterN=function(insts,master) {
+	for (var i=0;i<insts.length;i++) {
+		if (insts[i]==master) return i;
+	}
+}
+var masterCombinedRect=function(insts,master){
+	var n=findMasterN(insts,master);
+	return combinedRect(insts,n);
+}
+var drawInternal=function(ctx,inst,n,insts) {
+	ctx.beginPath();
+	ctx.strokeStyle=inst.tagsetting.color;
+	ctx.fillStyle=inst.tagsetting.fillcolor ||inst.tagsetting.color;
+	ctx.setLineDash([3]);
+	ctx.lineWidth=2;
+	ctx.globalAlpha = 0.7;
+	var x1=inst.rect[0],y1=inst.rect[1],x2=inst.rect[2],y2=inst.rect[3];
+
+	ctx.moveTo(x2,y1);ctx.lineTo(x1,y1);
+	if (inst.nth==0) ctx.lineTo(x1,y2);
+	ctx.moveTo(x1,y2);ctx.lineTo(x2,y2);
+	if (inst.nth==inst.len-1) ctx.lineTo(x2,y1);
+
+	if (inst.master) {
+		var masterRect=masterCombinedRect(insts,inst.master);
+		var rect=combinedRect(insts,n);
+		drawing.curveLink(ctx,rect,masterRect);
+
+		if (inst.tagsetting && inst.tagsetting.labels) {
+			ctx.strokeStyle='#000';
+			ctx.fillStyle='#000';
+			ctx.fillText(inst.tagsetting.labels[0],masterRect[0],masterRect[1]-2);
+			ctx.fillText(inst.tagsetting.labels[1],rect[0],rect[1]-2);
+		}
+	}
+
+
+	ctx.stroke();
+}
+
+var drawers={
+	simple:drawSimple
+	,intertext:drawInternal
+	,internal:drawInternal
+};
+
+var draw=function(ctx,inst,n,insts) {
+	var drawer=drawers[inst.tagsetting.type];
+	if (drawer) drawer(ctx,inst,n,insts);
 }
 module.exports={draw:draw};
-},{}],"C:\\ksana2015\\visualmarkup\\src\\store_markup.js":[function(require,module,exports){
+},{"./drawing":"C:\\ksana2015\\visualmarkup\\src\\drawing.js"}],"C:\\ksana2015\\visualmarkup\\src\\store_highlight.js":[function(require,module,exports){
+var Reflux=require("reflux");
+var actions=require("./actions_selection");
+
+var store_highlight=Reflux.createStore({
+	listenables: [actions]
+	,highlights:{}
+	,init:function() {
+	}
+	,onSetHighlight:function(highlights,viewid) {
+		this.highlights[viewid]=highlights;
+		this.trigger(this.highlights,viewid);
+	}
+	,onSetHighlights:function(viewhighlights) {
+		for (var i in viewhighlights) {
+			this.highlights[i]=viewhighlights[i];
+		}
+		var updated=Object.keys(viewhighlights);
+		for (var i=0;i<updated.length;i++){
+			this.trigger(this.highlights,updated[i]); //notify affected view
+		}
+	}
+	,onClearHighlights:function() {
+		for (var i in this.highlights) {
+			this.trigger({},i);
+		}
+		this.highlights={};
+	}
+	,getHighlights:function(){
+		return this.highlights;
+	}
+	,getHighlight:function(viewid){
+		return this.highlights[viewid];
+	}
+});
+
+module.exports=store_highlight;
+},{"./actions_selection":"C:\\ksana2015\\visualmarkup\\src\\actions_selection.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\store_markup.js":[function(require,module,exports){
 /*
   construct drawable markup object
 */
 var Reflux=require("reflux");
 var actions=require("./actions_markup");
+var actions_text=require("./actions_text");
+
 var testmarkups=require("./testmarkups");
 var persistent=require("./persistent");
-var layoutMarkups=function(viewpositions,viewmarkups, visibletags) {
-	var out=[];
-	for (var i=0;i<viewmarkups.length;i++) {
-		var markups=viewmarkups[i].markups;
-		var positions=viewpositions[i];
-		if (!positions) continue ;
-		for (var j=0;j<markups.length;j++) {
-			var markup=markups[j];
-			var start=markup[0], end=markup[0]+markup[1];
-			for (var k=start;k<end;k++) {
-				if (positions[k] && visibletags.indexOf(markup[2].tag)>-1 ) {//onscreen
-					out.push( [markup[2].tag,positions[k]] );
-				}
-			}
-		}
-	}
-	return out;
-}
-
-var store_trait=require("./store_trait");
+var store_tagsets=require("./store_tagsets");
 
 var store_markup=Reflux.createStore({
 	listenables: [actions]
-	,viewmarkups:[]
-	,viewpositions:[]
-	,visibletags:[]
+	,viewmarkups:{}    // all markups to be drawn, including on disk and virtual
+	,viewIDs:[]        // markable view id
+	,hiddenViews:[]     // this view doesn't display
+	,viewpositions:{}  // span positions in each view
+	,visibletags:[]    // only tag in this array are visible
+	,editing:{}        //the markup being edited
 	,onMarkupUpdated:function(){
-		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups,this.visibletags);
+		var drawables=this.layoutMarkups();
 		if (drawables) this.trigger(drawables);
-		actions.cancelEdit();
 	}
 	,removeMarkupAtPos:function(markups,vpos,exclusive) {
 		return markups.filter(function(m){
 			return !(m[0]==vpos && exclusive.indexOf(m[2].tag)>-1);
 		});
 	}
-	,dockeys:function() {
-		return ["0_"+this.tagsetname,"1_"+this.tagsetname];
+	,onRegisterViewid:function(viewid) {
+		if (this.viewIDs.indexOf(viewid)==-1) this.viewIDs.push(viewid);
+	}
+	,otherView:function(viewid) {
+		return this.viewIDs.filter(function(v){return v!=viewid});
+	}
+	,docIDs:function() {
+		return this.viewIDs.map(function(v){return v+"."+this.tagsetname},this);
+	}
+	,linkShadow:function(drawables){
+		for (var i=0;i<drawables.length;i++) {
+			var drawable=drawables[i];
+			if (drawable.payload.id && !drawable.payload.shadow) {
+				var shadows=[];
+				for (var j=0;j<drawables.length;j++) {
+					var shadow=drawables[j];
+					if (!shadow.master && shadow.nth==0 && 
+						shadow.payload.shadow && shadow.payload.id==drawable.payload.id) {
+						shadows.push(drawable);
+						shadow.master=drawable;
+					}
+				}
+				drawable.shadows=shadows;
+			}
+		}
+	}
+	,findShadow:function(markup) { //return object of array of markup, object key is viewid
+		var id=markup[2].id;
+		var out={};
+		this.forEachMarkup(function(m,viewid){
+			if (m[2].id==id && m[2].shadow) {
+				if (!out[viewid]) out[viewid]=[];
+				out[viewid].push(m);
+			}
+		});
+		return out;
+	}
+	,layoutMarkups:function() {
+		var out=[];
+		for (var i in this.viewmarkups) {
+			if (this.hiddenViews && this.hiddenViews.indexOf(i)>-1) continue;
+			var markups=this.viewmarkups[i].markups;
+			var positions=this.viewpositions[i];
+			if (!positions) continue;
+			for (var j=0;j<markups.length;j++) {
+				var markup=markups[j];
+				var len=markup[1];
+				var start=markup[0], end=markup[0]+len;
+				var payload=markup[2];
+				for (var k=start;k<end;k++) {
+					if (positions[k] && this.visibletags.indexOf(payload.tag)>-1 ) {//onscreen
+						// tag , position, nth, total in this group
+						var tagsetting=store_tagsets.settingOfTag(payload.tag);
+						out.push( {tagsetname:this.tagsetname,payload:payload,shadows:null, master:null,
+							rect:positions[k], nth:k-start,len:len,tagsetting:tagsetting } );
+					}
+				}
+			}
+		}
+		this.linkShadow(out);
+		return out;
 	}
 	,loadMarkups:function() {
-		persistent.loadMarkups(this.dockeys(),function(content){
+		var keys=this.docIDs();
+		actions.cancelEdit();
+		persistent.loadMarkups(keys,function(content){
 			for (var i=0;i<content.length;i++){
-				this.viewmarkups[i]=content[i];
+				var viewid=keys[i].substr(0,keys[i].indexOf("."));
+				this.viewmarkups[viewid]=content[i];
 			}
 			this.onMarkupUpdated();
 		},this);		
 	}
-	,onSetTagsetName:function(tagsetname){
+	,onSetActiveTagset:function(tagsetname,tagset){ 
 		this.tagsetname=tagsetname;
+		this.tagset=tagset;
 		this.loadMarkups();
 	}
 	,onSetVisibleTags:function(visibletags,norefresh) {
 		this.visibletags=visibletags;
+		actions.cancelEdit();
 		if (!norefresh) this.onMarkupUpdated();
 	}
-	,onDeleteMarkup:function(viewid,n) {
+	,findMarkupN:function(viewid,markup) {
 		var markups=this.viewmarkups[viewid].markups;
 		if (!markups) return;
-		if (n>=markups.length) return;
-		markups.splice(n,1);
-		this.viewmarkups[viewid].markups=markups;
+		for (var i=0;i<markups.length;i++) {
+			if (markups[i]==markup) return i;
+		}
+		return -1;
+	}
+	,onDeleteMarkup:function(viewid,markup) {
+		var markups=this.viewmarkups[viewid].markups;
+		if (!markups) return;
+		var n=this.findMarkupN(viewid,markup);
+		if (n==-1) return;
+
+		var id=markups[n][2].id;
+		if (id) {
+			this.filterMarkup(function(m,viewid){
+				return (!m[2].id || m[2].id!=id);
+			});
+		} else {
+			markups.splice(n,1);
+			this.viewmarkups[viewid].markups=markups;
+		}
+		this.sortMarkups();
 		this.onMarkupUpdated();
+		actions.cancelEdit();
+	}
+	,sortMarkups:function() {
+		for (var viewid in this.viewmarkups) {
+			var markups=this.viewmarkups[viewid].markups;
+			this.viewmarkups[viewid].markups=markups.sort(function(m1,m2){
+				return m1[0]-m2[0];
+			});
+		}
 	}
 	,createMarkup:function(viewid,vpos,length,payload,opts) {
 		opts=opts||{};
@@ -7010,12 +7670,36 @@ var store_markup=Reflux.createStore({
 			markups=this.removeMarkupAtPos(markups,vpos,opts.exclusive);
 		}
 		var markup=[vpos,length,payload];
+		//set 4th field to true for finding it after sort
 		markups.push(markup);
 		this.viewmarkups[viewid].markups=markups;
+		this.sortMarkups();
+		markups=this.viewmarkups[viewid].markups;
 		this.onMarkupUpdated();
-		if (opts.edit) actions.editMarkup(viewid,markups.length-1,markup);
+		if (opts.edit) {
+			var n=0;
+			for (var i=0;i<markups.length;i++) { //find the nth of newly created markup
+				if (markups[i]==markup) {//newly created
+					n=i;
+					break;
+				}
+			}
+			actions.editMarkup(viewid,markup,n);
+			this.editing={viewid:viewid,n:n};
+		}
+
+	}
+	,getEditing:function(viewid) {
+		if (!this.editing) return null;
+		if (this.editing.viewid==viewid) {
+			var v=this.viewmarkups[viewid].markups;
+			if (!v) return null;
+			return v[this.editing.n];
+		};
+		return null;
 	}
 	,findVisibleMarkupAt:function(viewid,vpos){
+		if (!this.viewmarkups[viewid]) return;
 		var markups=this.viewmarkups[viewid].markups;
 		if (!markups) return null;
 		var inrange=[]; // markup, distance, n in viewmarkups
@@ -7027,40 +7711,373 @@ var store_markup=Reflux.createStore({
 		};
 		if (!inrange.length) return null;
 		inrange.sort(function(a,b){return a[1]-b[1]}); //find out the nearest
-		return [viewid,inrange[0][2],inrange[0][0]]; //for editmarkup
+		return {viewid:viewid,n:inrange[0][2],markup:inrange[0][0]}; //for editmarkup
 	}
 	,onEditMarkupAtPos:function(viewid,vpos) {
-		var m=this.findVisibleMarkupAt(viewid,vpos);
-		actions.editMarkup.apply(this,m);
+		var res=this.findVisibleMarkupAt(viewid,vpos);
+		this.editing=null;
+		if (res) {
+			this.editing={viewid:res.viewid,n:res.n};
+			actions.editMarkup(res.viewid,res.markup,res.n);
+		} else {
+			actions.editMarkup(null,null,null);
+		}
+		
 	}
-	,onSaveMarkup:function(viewid,vpos,markup,opts){
-		this.viewmarkups[viewid].markups[n]=markup;
+	,editNMarkup:function(markups,n) {
+		if (n<markups.length && n>-1) {
+			this.editing.n=n;
+			this.markup=markups[this.editing.n];
+			actions.editMarkup(this.editing.viewid,this.markup,this.editing.n);
+			actions_text.getTextByVpos(this.markup[0],this.editing.viewid,true);
+		}
+	}
+	,isTagVisible:function(tag) {
+		return this.visibletags.indexOf(tag)>-1;
+	}
+	,onNextMarkup:function(opts) {
+		if (!this.editing) return;
+		var markups=this.viewmarkups[this.editing.viewid].markups;
 		opts=opts||{};
-		if (opts.forceUpdate) this.onMarkupUpdated();
+		var n=this.editing.n;
+		var tag=markups[n][2].tag;
+		while (n<markups.length-1) {
+			var py=markups[++n][2];
+			if (py.shadow) continue;
+			if (!this.isTagVisible(py.tag))continue;
+			if (!opts.sametag) {
+				break;
+			} else if (tag==py.tag) {
+				break;
+			}
+		}
+		this.editNMarkup(markups,n);
 	}
-	,onTokenPositionUpdated:function(positions,nview) {
-		this.viewpositions[nview]=positions;
-		var drawables=layoutMarkups(this.viewpositions,this.viewmarkups,this.visibletags);
+	,onPrevMarkup:function(opts){
+		if (!this.editing) return;
+		var markups=this.viewmarkups[this.editing.viewid].markups;
+		opts=opts||{};
+		var n=this.editing.n;
+		var tag=markups[n][2].tag;
+
+		while (n) {
+			var py=markups[--n][2];
+			if (py.shadow) continue;
+			if (!this.isTagVisible(py.tag))continue;
+			if (!opts.sametag) {
+				break;
+			} else if (tag==py.tag) {
+				 break;
+			}
+		}
+		this.editNMarkup(markups,n);
+	}
+	,onTokenPositionUpdated:function(positions,viewid) {
+		this.viewpositions[viewid]=positions;
+		var drawables=this.layoutMarkups();
 		if (drawables) this.trigger(drawables);
 	}
+	,onAddHiddenView:function(viewid) {
+		if (viewid && this.hiddenViews.indexOf(viewid)==-1) {
+			this.hiddenViews.push(viewid);
+			actions.cancelEdit();
+			this.onMarkupUpdated();
+		}
+	}
+	,onRemoveHiddenView:function(viewid){
+		var at=this.hiddenViews.indexOf(viewid);
+		if (at>-1) {
+			this.hiddenViews.splice(at,1);
+			actions.cancelEdit();
+			this.onMarkupUpdated();
+		}
+	}
+	,markupsArrayForSerialize:function() { // pouchdb needs array of docs
+		var out=[];
+		for (var i in this.viewmarkups){
+			if (this.viewIDs.indexOf(i)>-1) out.push(this.viewmarkups[i]);
+		}
+		return out;
+	}
 	,onSaveMarkups:function(cb,context){
-		persistent.saveMarkups(this.viewmarkups , cb,context);
+		persistent.saveMarkups(this.markupsArrayForSerialize(), cb,context);
+	}
+	,onSaveMarkup:function(viewid,n,markup,opts){
+		this.viewmarkups[viewid].markups[n]=markup;
+		opts=opts||{};
+		if (opts.forceUpdate) {
+			actions.cancelEdit();
+			this.onMarkupUpdated();
+		}
 	}
 	,onClearAllMarkups:function(){
-		persistent.resetMarkups(this.viewmarkups);
+		persistent.resetMarkups(this.markupsArrayForSerialize());
+		actions.cancelEdit();
 		this.onMarkupUpdated();
-	}	
+	}
+	,forEachMarkup:function(cb) {//return no null to quit loop
+		for (var i in this.viewmarkups) {
+			if (this.viewIDs.indexOf(i)==-1) continue;
+			var markups=this.viewmarkups[i].markups;
+			for (var j=0;j<markups.length;j++) {
+				var ret=cb(markups[j],i);
+				if (ret) return ret;
+			}
+		}
+	}
+	,filterMarkup:function(cb) {//return no null to quit loop
+		for (var i in this.viewmarkups) {
+			if (this.hiddenViews.indexOf(i)>-1) {
+				continue;
+			}
+			
+			var markups=this.viewmarkups[i].markups;
+			var out=[];			
+			for (var j=0;j<markups.length;j++) {
+				if (cb(markups[j],i)) {
+					out.push(markups[j]);
+				}
+			}
+			this.viewmarkups[i].markups=out;
+		}
+	}
+	,getMasterMarkup:function(markup,viewid) { //return [mastermarkup,viewid]
+		var payload=markup[2];
+		var id=payload.id;
+		if (id && !payload.shadow) return [markup,viewid];
+		return this.forEachMarkup(function(m,viewid){
+			if (m[2].id==id && !m[2].shadow) return [m,viewid];
+		});
+	}
+	,getRawMarkup:function() {
+		var out={};
+		for (var i in this.viewmarkups) {
+			if (this.viewIDs.indexOf(i)>-1) out[i]=this.viewmarkups[i];
+		}
+		return out;
+	}
+	,onSetVirtualMarkup:function( markups,viewid) {// virtual markup will not save to db
+		this.viewmarkups[viewid]={markups:markups};
+		//this.onMarkupUpdated();
+	}
+	,setRawMarkup:function(content) {
+		for (var i in content){
+			var rev=this.viewmarkups[i]._rev;
+			this.viewmarkups[i]=content[i];
+			this.viewmarkups[i]._rev=rev;
+		}
+		this.sortMarkups(); //make sure it is sorted
+		actions.cancelEdit();
+		this.onMarkupUpdated();
+	}
+
 });
 
 module.exports=store_markup;
-},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./persistent":"C:\\ksana2015\\visualmarkup\\src\\persistent.js","./store_trait":"C:\\ksana2015\\visualmarkup\\src\\store_trait.js","./testmarkups":"C:\\ksana2015\\visualmarkup\\src\\testmarkups.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\store_tagset.js":[function(require,module,exports){
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./actions_text":"C:\\ksana2015\\visualmarkup\\src\\actions_text.js","./persistent":"C:\\ksana2015\\visualmarkup\\src\\persistent.js","./store_tagsets":"C:\\ksana2015\\visualmarkup\\src\\store_tagsets.js","./testmarkups":"C:\\ksana2015\\visualmarkup\\src\\testmarkups.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\store_selection.js":[function(require,module,exports){
+var Reflux=require("reflux");
+var actions=require("./actions_selection");
+
+var store_selection=Reflux.createStore({
+	listenables: [actions]
+	,selections:{}
+	,init:function() {
+	}
+	,removeOverlapSelection:function(selections,start,len) {
+		return selections.filter(function(sel){
+			return (sel[0]>start+len || sel[0]+sel[1]<start);
+		});
+	}
+	,hasSameSelection:function(selections,start,len) {
+		for (var i=0;i<selections.length;i++) {
+			var sel=selections[i];
+			if (sel[0]==start &&sel[1]==len) return i;
+		}
+		return -1;
+	}
+	,onClearSelection:function(viewid) {
+		this.onSetSelection({},viewid);
+	}
+	,onClearSelections:function() {
+		var keys=Object.keys(this.selections);
+		var cleared={};
+		for (var i=0;i<keys.length;i++) {
+			cleared[keys[i]]=[];
+		}
+		this.onSetSelections(cleared);
+	}
+	,onAddSelection:function(viewid,existingselections,start,len,append) {
+		var selections=JSON.parse(JSON.stringify(existingselections));
+		var oldselections=selections;
+		var same=this.hasSameSelection(selections,start,len);
+		var updated=true;
+
+		if (same>-1) { //toggle 
+			selections.splice(same,1);
+		} else {
+			oldlength=selections.length;
+			selections=this.removeOverlapSelection(selections,start,len);
+			if (append && len) {
+				selections.push([start,len]);
+			} else {
+				if (len) {
+					selections=[[start,len]];
+				} else {
+					if (selections.length) selections=[];
+					else updated=false;
+				}
+			}
+		}
+
+		if (updated) {
+			actions.setSelection(selections , viewid);
+		}
+	}
+	,onSetSelection:function(selections,viewid) {
+		this.selections[viewid]=selections;
+		actions.clearHighlights();
+		this.trigger(this.selections,viewid);
+	}
+	,onSetSelections:function(viewselections) {
+		for (var i in viewselections) {
+			this.selections[i]=viewselections[i];
+		}
+		var updated=Object.keys(viewselections);
+		for (var i=0;i<updated.length;i++){
+			this.trigger(this.selections,updated[i]); //notify affected view
+		}
+		actions.clearHighlights();
+	}
+	,getSelections:function(){
+		return this.selections;
+	}
+	,getSelection:function(viewid){
+		return this.selections[viewid];
+	}
+});
+
+module.exports=store_selection;
+},{"./actions_selection":"C:\\ksana2015\\visualmarkup\\src\\actions_selection.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\store_tagset.js":[function(require,module,exports){
+var Reflux=require("reflux");
+var store_userinfo=require("./store_userinfo");
+var store_selection=require("./store_selection");
+var store_tagsets=require("./store_tagsets");
+var actions=require("./actions_markup");
+var actions_selection=require("./actions_selection");
+var S4=function() {
+    return (((1+Math.random())*0x10000)|0).toString(16).substring(1); 
+}
+var genGUID = function() {
+	return (S4() + S4() + "-" + S4() + "-4" + S4().substr(0,3) + "-" + S4() + "-" + S4() + S4() + S4()).toLowerCase();	
+} 
+
+var store_tagset=Reflux.createStore({
+	listenables: [actions]
+	,init:function() {
+		this.listenTo(store_selection, this.selectionChanged);
+	}
+	,groupSelection:function(viewselections){
+		var groupedselection=[];
+
+		for (var i in viewselections) { //how many selections in each view
+			var len=viewselections[i].length;
+			if (len) groupedselection.push(len);
+		}
+		return groupedselection;
+	}
+	,enableTagsetBySelection:function(viewselections) {
+		if (!this.tagset) return;
+		var g=this.groupSelection(viewselections);
+		for (var i=0;i<this.tagset.length;i++) {
+			this.tagset[i].disabled=!this.tagset[i].def.isValidSelection(g,viewselections);
+		}
+	}
+	,selectionChanged:function(viewselections) {
+		this.enableTagsetBySelection(viewselections);
+		this.trigger(this.tagsetname,this.tagset);
+	}
+	,onSetActiveTagset:function(tagsetname,tagset){
+		this.tagsetname=tagsetname;
+		this.tagset=tagset;
+		this.enableTagsetBySelection(store_selection.getSelections());
+		this.trigger(tagsetname,tagset); 
+	}
+	,getTagsetName:function() {
+		return this.tagsetname;
+	}
+	,sortSelection:function(viewsels) { //let the view with only one range be the head of group
+		var arr=[];
+		for (var i in viewsels) {
+			arr.push([i,viewsels[i].length]);
+		}
+		arr.sort(function(a,b){return b[1].length-a[1].length});
+		return arr.map(function(a){return a[0]});
+	}
+	,onDoTag:function(n) {
+		var exclusive=[];
+		var tag=this.tagset[n].name;
+		var viewsels=store_selection.getSelections();
+		var g=this.groupSelection(viewsels);
+		var valid=this.tagset[n].def.isValidSelection(g,viewsels);
+		if (!valid) return;
+		var guid=null;
+		var first=true;
+		var setting=store_tagsets.settingOfTag(tag);
+		if (setting.def.group) guid=genGUID();
+
+		var arr=this.sortSelection(viewsels);
+
+		for (var i=0;i<arr.length;i++) {
+			var viewid=arr[i];
+			var sels=viewsels[viewid];
+			for (var j=0;j<sels.length;j++){
+				var sel=sels[j];
+				var payload=setting.def.initPayload(tag,first,guid,sel,j,sels);
+				if (payload) {
+					actions.createMarkup(viewid,sel[0],sel[1],payload,{edit:first,exclusive:exclusive});
+				}
+				first=false;
+			}
+		}
+		actions_selection.clearSelections();
+
+	}
+});
+module.exports=store_tagset;
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./actions_selection":"C:\\ksana2015\\visualmarkup\\src\\actions_selection.js","./store_selection":"C:\\ksana2015\\visualmarkup\\src\\store_selection.js","./store_tagsets":"C:\\ksana2015\\visualmarkup\\src\\store_tagsets.js","./store_userinfo":"C:\\ksana2015\\visualmarkup\\src\\store_userinfo.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\store_tagsets.js":[function(require,module,exports){
 var Reflux=require("reflux");
 var actions=require("./actions_markup");
-var store_tagset=Reflux.createStore({
+var tagsetdef=require("./tagtypedef");
+var store_tagsets=Reflux.createStore({
 	listenables: [actions]
 	,onLoadTagsets:function(){
 		this.tagsets=require("./tagsets");
+		for (var viewid in this.tagsets) {
+			var tagset=this.tagsets[viewid].tagset;
+			for (var i in tagset) {
+				var tag=tagset[i];
+				if (!tag.type) tag.type="simple";
+				type=tag.type;
+				tag.def=tagsetdef[tag.type];
+				if (!tag.def) {
+					console.error("unknown tag",tag.type)
+				} else {
+					tag.checked=true;
+					tag.def.type=type;
+				}
+			}
+		}
 		this.trigger(this.tagsets);
+	}
+	,settingOfTag:function(tagname) {
+		for (var i=0;i<this.tagsets.length;i++){
+			var tagset=this.tagsets[i].tagset;
+			for (var j=0;j<tagset.length;j++) {
+				var tagsetting=tagset[j];
+				if (tagsetting.name==tagname) return tagsetting;
+			}
+		};
+		return null;
 	}
 	,tagsetOfTag:function(tag) {
 		for (var i=0;i<this.tagsets.length;i++){
@@ -7072,26 +8089,19 @@ var store_tagset=Reflux.createStore({
 		};
 		return null;
 	}
-	,
-
-});
-module.exports=store_tagset;
-},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./tagsets":"C:\\ksana2015\\visualmarkup\\src\\tagsets.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\store_tagsetname.js":[function(require,module,exports){
-var Reflux=require("reflux");
-
-var actions=require("./actions_markup");
-var store_tagsetname=Reflux.createStore({
-	listenables: [actions]
-	,onSetTagsetName:function(tagsetname){
-		this.tagsetname=tagsetname;
-		this.trigger(tagsetname);
-	},
-	getTagsetName:function() {
-		return this.tagsetname;
+	,typeOfTag:function(tag) {
+		for (var i=0;i<this.tagsets.length;i++){
+			var tagset=this.tagsets[i].tagset;
+			for (var j=0;j<tagset.length;j++) {
+				var tagdef=tagset[j];
+				if (tagdef.name==tag) return tagdef.type;
+			}
+		};
+		return null;		
 	}
 });
-module.exports=store_tagsetname;
-},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\store_text.js":[function(require,module,exports){
+module.exports=store_tagsets;
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./tagsets":"C:\\ksana2015\\visualmarkup\\src\\tagsets.js","./tagtypedef":"C:\\ksana2015\\visualmarkup\\src\\tagtypedef.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\store_text.js":[function(require,module,exports){
 
 var kde=require("ksana-database");
 var kse=require("ksana-search");
@@ -7100,54 +8110,101 @@ var preloadfields=[["fields"],["extra"]];
 var actions=require("./actions_text");
 
 var kepanIdToFileSeg=function(db,kepanid,fieldname) {
+	if (!kepanid)return 1;
 	var N=db.get(["fields",fieldname||"kw","n"]);
 	var vpos=db.get(["fields",fieldname||"kw","vpos"]);
 	var n=N.indexOf(kepanid.toString());
 	if (n==-1) return null;
 	var fileseg= db.fileSegFromVpos(vpos[n]);
-	fileseg.seg+=1;
 	return fileseg;
 };
 var	segToKepanId=function(db,seg,fieldname) {
 		var N=db.get(["fields",fieldname||"kw","n"]);
 		var vpos=db.get(["fields",fieldname||"kw","vpos"]);
 		var segoffsets=db.get("segoffsets");
+
 		var i=kde.bsearch(vpos, segoffsets[seg-1] ,true);
 		var nearest=vpos[i];
-		while (vpos[i+1]==nearest) i++;
-		return N[i];
+		if (i&&nearest>segoffsets[seg-1]) i--;
+		return parseInt(N[i]);
+		
 };
-
+var getTextBySelection=function(db,vpos,len) {
+	var fseg=db.fileSegFromVpos(vpos);
+	//make sure the text is already in memory
+	var text=db.get(["filecontents",fseg.file,fseg.seg]);
+	var startvpos=db.fileSegToVpos(fseg.file,fseg.seg);
+	if (!text) return "";
+	return text.substr(vpos-startvpos+1,len);
+}
+var getSegByVpos=function(db,vpos) {
+	var fseg=db.fileSegFromVpos(vpos);
+	return db.fileSegToAbsSeg(fseg.file,fseg.seg);
+}
 var store_dsl=Reflux.createStore({
 	listenables: [actions],
 	opendb:function(cb) {
 		kde.open("dsl_jwn",{preload:preloadfields},function(err,db){
 			if (!err) {
 				this.db=db;
-				cb.apply(this,[db]);
+				if (cb) cb.apply(this,[db]);
 			}
 		},this);
-	},
-	onGetLectureTextByKepanId:function(kepanid) {
+	}
+	,currentseg:0
+	,init:function() {
+		this.opendb();
+	}
+	,onGetLectureTextByKepanId:function(kepanid) {
 		this.opendb(function(db){
 			var fileseg=kepanIdToFileSeg(db,kepanid);
 			if (fileseg){
-				this.currentseg=db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
-				this.onGetLectureTextBySeg(this.currentseg);
+				var seg=db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
+				this.onGetLectureTextBySeg(seg,true);
 			}
 		},this);		
-	},
-	onGetLectureTextBySeg:function(seg) {
-		var fileseg=this.db.absSegToFileSeg(seg);
+	}
+	,onGetTextByKepanId:function(viewid,kepanid){
+		if (viewid!="lecture") return;
+		if (kepanid!=this.getKepanId()) {
+			this.onGetLectureTextByKepanId(kepanid);
+		}
+	}
+	,onGetTextByVpos:function(vpos,viewid,nosync) {
+		if (viewid!="lecture") return;
+		if (!this.db)return; //this is trigger by markup jump, db should be realy
+		var fileseg=this.db.fileSegFromVpos(vpos);
+		if (fileseg) {
+			var seg=this.db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
+			this.onGetLectureTextBySeg(seg,nosync);
+		}
+	}
+	,onGetTextBySeg:function(viewid,seg,nosync){
+		if (viewid!="lecture") return;
+		this.onGetLectureTextBySeg(seg,nosync);
+	}
+	,onGetLectureTextBySeg:function(seg,nosync) {
+		if (seg==this.currentseg) return;
 		this.currentseg=seg;
+		var fileseg=this.db.absSegToFileSeg(seg);
 		var kepanid=segToKepanId(this.db,seg);
+		this.kepanId=kepanid;
+		this.startvpos=this.db.fileSegToVpos(fileseg.file,fileseg.seg);
+		this.endvpos=this.db.fileSegToVpos(fileseg.file,fileseg.seg+1);
 
-		this.kepanid=kepanid;
 		kse.highlightSeg(this.db,fileseg.file,fileseg.seg,{token:true},function(data){
-			this.trigger(data.text,this.db);
+			this.trigger(data.text,seg,this.db,{nosync:nosync});
 		},this);
-	},
-	onNextLecturePara:function(){
+	}
+	,onNextPara:function(viewid) {
+		if (viewid!="lecture") return;
+		this.onNextLecturePara();
+	}
+	,onPrevPara:function(viewid) {
+		if (viewid!="lecture") return;
+		this.onPrevLecturePara();
+	}
+	,onNextLecturePara:function(){
 		if (!this.db) return;
 		var segnames=this.db.get("segnames");
 		if (this.currentseg+1>=segnames.length) return;
@@ -7158,6 +8215,26 @@ var store_dsl=Reflux.createStore({
 		var segnames=this.db.get("segnames");
 		if (this.currentseg<2) return;
 		this.onGetLectureTextBySeg(this.currentseg-1);
+	}
+	,onSyncSutra:function(totop) {
+		if (totop||store_sutra.getKepanId()!=this.kepanId) {
+			actions.getSutraTextByKepanId(this.kepanId);
+		}
+	}
+	,onSyncKepan:function() {
+		actions.goKepanId(this.kepanId) ; //this is not good, assuming kepanid start from 1
+	}
+	,getKepanId:function() {
+		return this.kepanId;
+	}
+	,vposInSight:function(vpos) {
+		return (vpos>=this.startvpos && vpos<this.endvpos);
+	}
+	,getTextBySelection:function(vpos,len) {
+		return getTextBySelection(this.db,vpos,len);
+	}
+	,getSegByVpos:function(vpos) {
+		return getSegByVpos(this.db,vpos);
 	}
 });
 
@@ -7182,6 +8259,8 @@ var store_kepan=Reflux.createStore({
 	},
 	onGoKepanId:function(n) {
 		if (!this.db) return ;
+		if (this.nkepan==n) return;
+		this.nkepan=n;
 		this.trigger(n,this.db);
 	},
 	onGetKepan:function(){
@@ -7191,53 +8270,99 @@ var store_kepan=Reflux.createStore({
 			this.trigger(kepan,db);
 		},this);
 	},
-
 });
 
 var store_ds=Reflux.createStore({
-	listenables: [actions],
-	opendb:function(cb) {
+	listenables: [actions]
+	,currentseg:0
+	,opendb:function(cb) {
 		kde.open("ds",{preload:preloadfields},function(err,db){
 			if (!err) cb.apply(this,[db]);
 		},this);
-	},
-	onGetSutraTextByKepanId:function(kepanid) {
+	}
+	,onGetTextByVpos:function(vpos,viewid,nosync) {
+		if (viewid!="sutra") return;
+		if (!this.db)return; //this is trigger by markup jump, db should be realy
+		var fileseg=this.db.fileSegFromVpos(vpos);
+		if (fileseg) {
+			var seg=this.db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
+			this.onGetSutraTextBySeg(seg,nosync);
+		}
+	}
+	,onGetSutraTextByKepanId:function(kepanid,nosync) {
 		this.opendb(function(db){
 			var fileseg=kepanIdToFileSeg(db,kepanid,"kw_jwn");
 			this.db=db;
 			if (fileseg){
-				this.currentseg=db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
-				this.onGetSutraTextBySeg(this.currentseg,false);
+				var seg=db.fileSegToAbsSeg(fileseg.file,fileseg.seg);
+				this.onGetSutraTextBySeg(seg,nosync);
 			};
 		});
-	},
-	onGetSutraTextBySeg:function(seg,synckepan) {
+	}
+	,onGetTextByKepanId:function(viewid,kepanid,nosync){
+		if (viewid!="sutra") return;
+		if (kepanid!=this.getKepanId()) {
+			this.onGetSutraTextByKepanId(kepanid,nosync);
+		}
+	}
+	,onSyncLecture:function(totop) {
+		if (totop||store_lecture.getKepanId()!=this.kepanId) {
+			actions.getLectureTextByKepanId(kepanid,nosync);
+		}
+	}
+	,onSyncKepan:function() {
+		actions.goKepanId(this.kepanId); //this is not good, assuming kepanid start from 1
+	}
+	,onGetTextBySeg:function(viewid,seg,nosync){
+		if (viewid!="sutra") return;
+		this.onGetSutraTextBySeg(seg,nosync);
+	}
+	,onNextPara:function(viewid) {
+		if (viewid!="sutra") return;
+		this.onNextSutraPara();
+	}
+	,onPrevPara:function(viewid) {
+		if (viewid!="sutra") return;
+		this.onPrevSutraPara();
+	}
+	,onGetSutraTextBySeg:function(seg,nosync) {
+		if (seg==this.currentseg) return;
 		this.currentseg=seg;
 		var fileseg=this.db.absSegToFileSeg(seg);
 		var kepanid=segToKepanId(this.db,seg,"kw_jwn");
-		if (kepanid && kepanid!=this.kepanId) {
-			actions.getLectureTextByKepanId(kepanid);
-			if (synckepan) actions.goKepanId(parseInt(kepanid)) ; //this is not good, assuming kepanid start from 1
-		}
-		this.kepanid=kepanid;
+		this.kepanId=kepanid;
+
+		this.startvpos=this.db.fileSegToVpos(fileseg.file,fileseg.seg);
+		this.endvpos=this.db.fileSegToVpos(fileseg.file,fileseg.seg+1);
 
 		kse.highlightSeg(this.db,fileseg.file,fileseg.seg,{token:true},function(data){
-			this.trigger(data.text,this.db);
+			this.trigger(data.text,seg,this.db,{nosync:nosync});
 		},this);
-	},
-	onNextSutraPara:function(){
+	}
+	,onNextSutraPara:function(){
 		if (!this.db) return;
 		var segnames=this.db.get("segnames");
 		if (this.currentseg+1>=segnames.length) return;
-		this.onGetSutraTextBySeg(this.currentseg+1,true);
-	},
-	onPrevSutraPara:function(){
+		this.onGetSutraTextBySeg(this.currentseg+1);
+	}
+	,onPrevSutraPara:function(){
 		if (!this.db) return;
 		var segnames=this.db.get("segnames");
 		if (this.currentseg<2) return;
-		this.onGetSutraTextBySeg(this.currentseg-1,true);
+		this.onGetSutraTextBySeg(this.currentseg-1);
 	}
-
+	,getKepanId:function() {
+		return this.kepanId;
+	}
+	,vposInSight:function(vpos) {
+		return (vpos>=this.startvpos && vpos<this.endvpos);
+	}
+	,getTextBySelection:function(vpos,len) {
+		return getTextBySelection(this.db,vpos,len);
+	}
+	,getSegByVpos:function(vpos) {
+		return getSegByVpos(this.db,vpos);
+	}
 });
 
 var matchEntries=function(entries,tofind) {
@@ -7277,69 +8402,129 @@ var store_dictionary=Reflux.createStore({
 	}
 });
 
-module.exports={ds:store_ds,dsl:store_dsl,kepan:store_kepan,dictionary:store_dictionary};
+module.exports={sutra:store_ds,lecture:store_dsl,kepan:store_kepan,dictionary:store_dictionary};
 
 },{"./actions_text":"C:\\ksana2015\\visualmarkup\\src\\actions_text.js","ksana-database":"C:\\ksana2015\\node_modules\\ksana-database\\index.js","ksana-search":"C:\\ksana2015\\node_modules\\ksana-search\\index.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\store_trait.js":[function(require,module,exports){
 var Reflux=require("reflux");
 var actions=require("./actions_markup");
-
+var actions_selection=require("./actions_selection");
+var store=require("./store_markup");
 var store_trait=Reflux.createStore({
 	listenables: [actions]
-	,onEditMarkup:function(viewid,nmarkup,markup) {
+	,onDeleteEditingMarkup:function(opts){
+		opts=opts||{};
+		if (!this.markup) return;
+		actions.deleteMarkup(this.viewid,this.markup);
+		if (opts.setSelection) {
+			actions_selection.setSelections(this.markupselections);
+		}
+		this.onCancelEdit();
+	}
+	,onEditMarkup:function(viewid,markup,nmarkup) {
+		var group={},master=null;
+		if (markup) {
+			if (markup[2].id) {
+				master=store.getMasterMarkup(markup,viewid);			
+				var group=store.findShadow(master[0]);
+				if (!group[master[1]]) group[master[1]]=[];
+				group[master[1]].push(master[0]);
+			} else { //single range
+				group[viewid]=[markup];
+			}
+			if (master && master[0]!=markup) markup=master[0];
+		}
 		this.viewid=viewid;
-		this.nmarkup=nmarkup;
+		this.nmarkup=nmarkup; //this where user click
 		this.markup=markup;
-		this.trigger(this.viewid,this.nmarkup,this.markup);
+		//this.viewid+this.nmarkup point to current editing markup
+		//this.markup always point to master markup, where the payload is editable
+		this.markupselections={};
+		this.group=group;
+
+		for (var i in group) {
+			if (!this.markupselections[i]) this.markupselections[i]=[];
+			var ranges=group[i].map(function(m){return [m[0],m[1]];});
+			this.markupselections[i]=this.markupselections[i].concat(ranges);
+		}
+
+		this.onRestore();
 	}
 	,onRestore:function() {
-		this.trigger(this.viewid,this.nmarkup,this.markup);
+		this.trigger(this.viewid,this.markup,this.nmarkup,this.group,this.markupselections);
 	}
 	,onCancelEdit:function(){
+		actions_selection.clearHighlights();
+		this.viewid=null;
+		this.nmarkup=-1;
+		this.markup=null;
+		this.markupselections=null;
 		this.trigger();	
 	}
 });
 
 module.exports=store_trait;
-},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\sutratext.js":[function(require,module,exports){
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./actions_selection":"C:\\ksana2015\\visualmarkup\\src\\actions_selection.js","./store_markup":"C:\\ksana2015\\visualmarkup\\src\\store_markup.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\store_userinfo.js":[function(require,module,exports){
+var Reflux=require("reflux");
+var actions=require("./actions_system");
+var store_userinfo=Reflux.createStore({
+	listenables: [actions],
+	init:function() {
+		try {
+			this.user=JSON.parse(localStorage.getItem("user"));
+			if (!this.user || typeof this.user!="object") ;
+		} catch (e) {
+			this.user=null;
+		} finally {
+			if (!this.user) this.user={name:"yap",email:"yapcheahshen@gmail.com"}
+		}
+		var that=this;
+		setTimeout(function(){
+			that.trigger(that.user);	
+		},500);
+		
+	},
+	onSetUserName:function(username) {
+		this.user.name=username;
+		localStorage.setItem("user",JSON.stringify(this.user));
+		this.trigger(this.user);
+	},
+	getUserName:function() {
+		return this.user.name;
+	}
+});
+
+module.exports=store_userinfo;
+},{"./actions_system":"C:\\ksana2015\\visualmarkup\\src\\actions_system.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\sutratext.js":[function(require,module,exports){
 var Reflux=require("reflux");
 var actions=require("./actions_text");
 var actions_markup=require("./actions_markup");
 var domhelper=require("./domhelper");
 var Markable=require("./markable");
-var Controls=React.createClass({displayName: "Controls",
-	nextpara:function() {
-		actions.nextSutraPara();
-	},
-	prevpara:function() {
-		actions.prevSutraPara();
-	},
-	render:function() {
-		return React.createElement("div", {className: "text-center"}, "經文", 
-				React.createElement("div", {className: "pull-right"}, React.createElement("button", {onClick: this.prevpara}, "上一段"), 
-				React.createElement("button", {onClick: this.nextpara}, "下一段")
-				)
-		    )
-	}
-});
-var viewid=0;
+var store_ds=require("./store_text").sutra;
+var TextNav=require("./textnav");
+var viewid="sutra";
 var Refertext=React.createClass({displayName: "Refertext",
-	mixins:[Reflux.listenTo(require("./store_text").ds,"sutratext")],
-	getInitialState:function() {
+	mixins:[Reflux.listenTo(store_ds,"sutratext")]
+	,getInitialState:function() {
 		return {text:[],db:null};
-	},
-	spanClicked:function(e) {
+	}
+	,spanClicked:function(e) {
 		var tofind=domhelper.getTextUntilPunc(e.target);
 		var vpos=parseInt(e.target.dataset.n); 
 		actions.searchDictionary(tofind,vpos,viewid);
 		actions_markup.editMarkupAtPos(viewid,vpos);
-	},
-	sutratext:function(text,db){
-		if (text) this.setState({text:text});
+	}
+	,sutratext:function(text,db){
+		if (text) {
+			this.setState({text:text});
+			actions.syncKepan();
+		}
 		if (this.state.db!=db) this.setState({db:db});
-	}, 
-	render:function() {
+	}
+	,render:function() {
 		return React.createElement("div", {className: "panel panel-success"}, 
-				React.createElement("div", {className: "panel-heading"}, React.createElement(Controls, null)), 
+				React.createElement("div", {className: "panel-heading clearfix"}, 
+				React.createElement(TextNav, {store: store_ds, actions: actions, viewid: viewid, title: "經文"})), 
 				React.createElement("div", {onClick: this.spanClicked, className: "sutratext panel-body"}, 
 					React.createElement(Markable, {text: this.state.text, viewid: viewid})
 		        )
@@ -7348,102 +8533,106 @@ var Refertext=React.createClass({displayName: "Refertext",
 });
 
 module.exports=Refertext;
-},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./actions_text":"C:\\ksana2015\\visualmarkup\\src\\actions_text.js","./domhelper":"C:\\ksana2015\\visualmarkup\\src\\domhelper.js","./markable":"C:\\ksana2015\\visualmarkup\\src\\markable.js","./store_text":"C:\\ksana2015\\visualmarkup\\src\\store_text.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\tagsets.js":[function(require,module,exports){
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./actions_text":"C:\\ksana2015\\visualmarkup\\src\\actions_text.js","./domhelper":"C:\\ksana2015\\visualmarkup\\src\\domhelper.js","./markable":"C:\\ksana2015\\visualmarkup\\src\\markable.js","./store_text":"C:\\ksana2015\\visualmarkup\\src\\store_text.js","./textnav":"C:\\ksana2015\\visualmarkup\\src\\textnav.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\tagsets.js":[function(require,module,exports){
 /*markup defination file*/
 var tagset_partofspeech=[
-  {label:"代名詞", name:"pronoun", type:"markinternal"} 
-  ,{label:"名詞", name:"noun", type:"marksimple"} 
-  ,{label:"動詞", name:"verb", type:"marksimple"} 
-  ,{label:"副詞", name:"adverb",type:"marksimple"}  
-  ,{label:"形容詞", name:"adjective",type:"marksimple"}  
-  ,{label:"助詞", name:"particle",type:"marksimple"}    
-  ,{label:"連接詞", name:"conjunction", type:"marksimple" } 
-  ,{label:"介詞", name:"preposition", type:"marksimple"  } 
-  ,{label:"數詞", name:"numeral",type:"marksimple"}  
-  ,{label:"量詞", name:"classifier",type:"marksimple"}  
+  {label:"代名詞", name:"pronoun", type:"simple", desc:"：你、我、他", color:"#7F3"} 
+  ,{label:"名詞", name:"noun", type:"simple", desc:"：桌、椅",color:"#F73"} 
+  ,{label:"動詞", name:"verb", type:"simple", desc:"：行、住、坐、臥",color:"#993"} 
+  ,{label:"副詞", name:"adverb",type:"simple", desc:"：快、慢",color:"#2FF"}  
+  ,{label:"形容詞", name:"adjective",type:"simple", desc:"：冷、熱",color:"#66F"}  
+  ,{label:"助詞", name:"particle",type:"simple", desc:"：很",color:"#0FF"}
+  ,{label:"連接詞", name:"conjunction", type:"simple", desc:"：及",color:"#F0F"} 
+  ,{label:"介詞", name:"preposition", type:"simple" , desc:"：向、於、對",color:"#3F3"} 
+  ,{label:"數詞", name:"numeral",type:"simple", desc:"：百、千、萬",color:"#3F7"}  
+  ,{label:"量詞", name:"classifier",type:"simple", desc:"：匹、頭",color:"#F07"}  
 
 ];
 var tagset_punctuation=[
-   {label:"句號", name:"fullstop", type:"markinternal"} 
-  ,{label:"逗號", name:"comma", type:"marksimple"} 
-  ,{label:"頓號", name:"douten", type:"marksimple"} 
-  ,{label:"分號", name:"semicolon",type:"marksimple"}  
-  ,{label:"冒號", name:"colon",type:"marksimple"}  
-  ,{label:"引號", name:"quotationmark",type:"marksimple"}    
-  ,{label:"夾注", name:"warichu", type:"marksimple" } 
-  ,{label:"問號", name:"questionmark", type:"marksimple"  } 
-  ,{label:"驚嘆", name:"exclamationmark",type:"marksimple"}  
-  ,{label:"破折", name:"emdash",type:"marksimple"}  
-  ,{label:"刪節", name:"ellipsis",type:"marksimple"}  
-  ,{label:"專名", name:"propernamemark",type:"marksimple"}  
-  ,{label:"間隔", name:"interpunct",type:"marksimple"}  
-  ,{label:"連接", name:"dash",type:"marksimple"}  
+   {label:"句號", name:"fullstop", type:"punc",desc:"："} 
+  ,{label:"逗號", name:"comma", type:"punc",desc:"："} 
+  ,{label:"頓號", name:"douten", type:"punc",desc:"："} 
+  ,{label:"分號", name:"semicolon",type:"punc",desc:"："}  
+  ,{label:"冒號", name:"colon",type:"punc",desc:"："}  
+  ,{label:"引號", name:"quotationmark",type:"punc2",desc:"：「」",desc:"：『』"}    
+  ,{label:"雙引號", name:"quotationmark2",type:"punc2",desc:"：『』"}
+  ,{label:"夾注號", name:"warichu", type:"punc2",desc:"：甲式：（　）"} 
+  ,{label:"夾注號2", name:"warichu2", type:"punc2",desc:"：乙式：──　──"}   
+  ,{label:"問號", name:"questionmark", type:"punc",desc:"：？"  } 
+  ,{label:"驚嘆號", name:"exclamationmark",type:"punc",desc:"：！"}  
+  ,{label:"破折號", name:"emdash",type:"punc",desc:"：──"}  
+  ,{label:"刪節號", name:"ellipsis",type:"punc",desc:"：……"}  
+  ,{label:"書名號", name:"booknamemark",type:"punc2",desc:"金剛經"}  
+  ,{label:"專名號", name:"propernamemark",type:"punc2",desc:"：專有名詞"}  
+  ,{label:"間隔號", name:"interpunct",type:"punc",desc:"：．"}  
+  ,{label:"連接號", name:"dash",type:"punc",desc:"：甲式"}
+  ,{label:"連接號2", name:"dash",type:"punc",desc:"：乙式"}
 
 ];
 var tagset_defination=[
-  {label:"釋義", name:"defination", type:"markinternal2",labels:["字詞","釋義"]  } 
-  ,{label:"同名異譯", name:"translation", type:"markinternal2",labels:["字詞","譯名"]  } 
+  {label:"釋義", name:"defination", type:"internal",labels:["字詞","釋義"],desc:"：通序|諸經通有"  } 
+  ,{label:"同名異譯", name:"translation", type:"internal",labels:["字詞","譯名"],desc:"：耶斯那|耶舍陀"} 
 
 ];
 
 var tagset_wordrelation=[
-   {label:"同義", name:"synonym", type: "markinternal"  ,labels:["詞彙","同義詞"]} 
-  ,{label:"反義詞", name:"antonym", type: "markinternal"  ,labels:["詞彙","反義詞"]} 
-  ,{label:"能所", name:"sign", type: "markinternal2"  ,labels:["能指","所指"]} 
-  ,{label:"名相", name:"nameappearance", type: "markinternal2" ,labels:["名","相"] } 
-  ,{label:"因果", name:"causeeffect", type: "markinternal2" ,labels:["因","果"] } 
-  ,{label:"題名互文", name:"bookquote", type: "markinternal2" ,labels:["題名","引文"] } 
-  ,{label:"人名互文", name:"personquote", type: "markinternal2" ,labels:["人名","引文"] } 
-  ,{label:"跨文本互文", name:"quote", type: "markintertext" } 
+   {label:"同義", name:"synonym", type: "internal"  ,labels:["詞彙","同義詞"],desc:"：三衣|加沙", color:"#7F3" } 
+  ,{label:"反義詞", name:"antonym", type: "internal"  ,labels:["詞彙","反義詞"],desc:"：如是|不如是" ,color:"#F73"} 
+  ,{label:"能所", name:"sign", type: "internal"  ,labels:["能指","所指"],desc:"：五藏|經、律、論，及雜集藏、禁咒藏",color:"#993" } 
+  ,{label:"名相", name:"nameappearance", type: "internal" ,labels:["名","相"],desc:"：如|不異",color:"#703"} 
+  ,{label:"因果", name:"causeeffect", type: "internal" ,labels:["因","果"],desc:"：降伏我慢故，不貪口味故。|乞食" ,color:"#66F" } 
+  ,{label:"題名互文", name:"bookquote", type: "internal" ,labels:["題名","引文"] ,desc:"：華嚴經|信為道元功德母，長養一切諸善法。",color:"#F07"} 
+  ,{label:"人名互文", name:"personquote", type: "internal" ,desc:"：",labels:["人名","引文"] ,desc:"：台宗智者大師|說法華經題,說明體宗相用",color:"#F0F" } 
+  ,{label:"跨文本互文", name:"quote", type: "intertext" ,desc:"：隋•嘉祥吉藏《金剛般若疏》|「一切經初當安如是我聞。」遺言令安此六事，故名遺教序。" ,color:"#307"} 
 ];
 var tagset_wordcontext=[
-   {label:"人", name:"person", type:"marksimple"} 
-  ,{label:"事", name:"matter", type:"marksimple"} 
-  ,{label:"時", name:"time",type:"marksimple"}  
-  ,{label:"地", name:"place",type:"marksimple"}  
-  ,{label:"物", name:"thing",type:"marksimple"}    
-  ,{label:"狀態", name:"state",type:"marksimple"}    
-  ,{label:"顏色", name:"color",type:"marksimple"}    
-  ,{label:"動作", name:"action",type:"marksimple"}    
+   {label:"人", name:"person", type:"simple",desc:"：大迦葉"} 
+  ,{label:"事", name:"matter", type:"simple",desc:"：大乘結集"} 
+  ,{label:"時", name:"time",type:"simple",desc:"：佛滅七日"}  
+  ,{label:"地", name:"place",type:"simple",desc:"：娑羅雙樹間"}  
+  ,{label:"物", name:"thing",type:"simple",desc:"：三藏"}    
+  ,{label:"狀態", name:"state",type:"simple",desc:"：滅"}    
+  ,{label:"顏色", name:"color",type:"simple",desc:"：紫"}    
+  ,{label:"動作", name:"action",type:"simple",desc:"：著衣"}    
 
-  ,{label:"其他", name:"other",type:"marksimple"}    
+  ,{label:"其他", name:"other",type:"simple",desc:"：如此之色"}    
 
-  ,{label:"食", name:"eating", type:"marksimple" } 
-  ,{label:"衣", name:"clothing", type:"marksimple"  } 
-  ,{label:"住", name:"housing",type:"marksimple"}  
-  ,{label:"行", name:"traffic",type:"marksimple"}  
-  ,{label:"育", name:"education",type:"marksimple"}
-  ,{label:"樂", name:"entertainment",type:"marksimple"}
+  ,{label:"食", name:"eating", type:"simple" ,desc:"：吃飯"} 
+  ,{label:"衣", name:"clothing", type:"simple" ,desc:"：三衣" } 
+  ,{label:"住", name:"housing",type:"simple",desc:"：住舍衛城"}  
+  ,{label:"行", name:"traffic",type:"simple",desc:"：旅行"}  
+  ,{label:"育", name:"education",type:"simple",desc:"：世尊說法"}
+  ,{label:"樂", name:"entertainment",type:"simple",desc:"歌舞"}
  ];
 var tagset_authorexpress=[ 
-   {label:"重點", name:"important", type: "marksimple"}
-  ,{label:"說明", name:"clarify", type: "marksimple"}
-  ,{label:"提醒", name:"remind", type: "marksimple"}
-  ,{label:"補充", name:"complement", type: "marksimple"}
-  ,{label:"推論", name:"inference", type: "marksimple"}
-  ,{label:"提問", name:"question", type: "marksimple"}
-  ,{label:"回答", name:"answer", type: "marksimple"}
-  ,{label:"校勘", name:"revise", type: "marksimple"}
-  ,{label:"語譜", name:"paradigm", type: "marksimple"}
-  ,{label:"情感", name:"emotion", type: "marksimple"}
+   {label:"重點", name:"important", type: "simple",desc:"：乞食。降伏我慢故，不貪口味故"}
+  ,{label:"說明", name:"clarify", type: "simple",desc:"：出家本為度眾生。"}
+  ,{label:"提醒", name:"remind", type: "simple",desc:"：珍重"}
+  ,{label:"補充", name:"complement", type: "simple",desc:"：這家布施甜，他家或布施鹹，故名加沙味。"}
+  ,{label:"推論", name:"inference", type: "simple",desc:"：推之，若對於一切境緣皆能如是領會，則受用無窮矣。"}
+  ,{label:"提問", name:"question", type: "simple",desc:"：云何六緣？"}
+  ,{label:"回答", name:"answer", type: "simple",desc:"：一者，如是，信成就也。"}
+  ,{label:"校勘", name:"revise", type: "simple",desc:"：校也，舊版無。據原稿補。"}
+  ,{label:"語譜", name:"paradigm", type: "simple",desc:"：世尊|佛|如來"}
+  ,{label:"情感", name:"emotion", type: "simple",desc:"：痛心"}
 ];
 
 var tagset_readerexpress=[
-   {label:"重點",name:"important2",type:"markusernode"} 
-  ,{label:"摘要",name:"abstract2",type:"markusernode"}
-  ,{label:"提問",name:"question2",type:"markusernode"} 
-  ,{label:"解釋", name:"explain2", type:"markusernode"} 
-  ,{label:"感受", name:"feel2", type:"markusernode"} 
+   {label:"重點",name:"important2",type:"usernote",desc:"：世尊|佛說般若波羅蜜，則非般若波羅蜜。"} 
+  ,{label:"摘要",name:"abstract2",type:"usernote",desc:"：三衣：安陀會、鬱多羅僧、僧伽黎"}
+  ,{label:"提問",name:"question2",type:"usernote",desc:"：為什麼五條、七條、九條有下品、中品及上品之分？"} 
+  ,{label:"解釋", name:"explain2", type:"usernote",desc:"：六緣指：信、聞、時、主、處、眾"} 
+  ,{label:"感受", name:"feel2", type:"usernote",desc:"：現在能見聞到佛典，當懷恭敬和感恩心"} 
 ];
 
 var tagsets=[
-	 {label:"詞性",name:"partofspeech", tagset:tagset_partofspeech}
-	,{label:"標逗",name:"punctuation",  tagset:tagset_punctuation}
-	,{label:"釋義",name:"defination",  tagset:tagset_defination}
-	,{label:"字詞關係",name:"wordrelation", tagset:tagset_wordrelation}
-	,{label:"字詞情境",name:"wordcontext",  tagset:tagset_wordcontext}
-	,{label:"作者表達",name:"authorexpress",tagset:tagset_authorexpress}
-	,{label:"讀者表達",name:"readerexpress",tagset:tagset_readerexpress}	
+   {label:"詞性",name:"partofspeech", tagset:tagset_partofspeech}
+  ,{label:"標逗",name:"punctuation",  tagset:tagset_punctuation}
+  ,{label:"釋義",name:"defination",  tagset:tagset_defination}
+  ,{label:"字詞關係",name:"wordrelation", tagset:tagset_wordrelation}
+  ,{label:"字詞情境",name:"wordcontext",  tagset:tagset_wordcontext}
+  ,{label:"作者表達",name:"authorexpress",tagset:tagset_authorexpress}
+  ,{label:"讀者表達",name:"readerexpress",tagset:tagset_readerexpress}  
 ]
 
 
@@ -7451,55 +8640,177 @@ module.exports=tagsets;
 
 },{}],"C:\\ksana2015\\visualmarkup\\src\\tagsettab.js":[function(require,module,exports){
 var Choices=require("ksana2015-components").choices;
-var store=require("./store_tagset");
+var store=require("./store_tagsets");
+var store_tagset=require("./store_tagset");
 var actions=require("./actions_markup");
 var Reflux=require("reflux");
+
+var viewID= "markuppanel";
 var TagsetTab=React.createClass({displayName: "TagsetTab",
-	mixins:[Reflux.listenTo(store,"onTagSet")],
+	mixins:[Reflux.listenTo(store,"onTagSets"), Reflux.listenTo(store_tagset,"onTagsetStatus")],
 	propTypes:{
 	} 
-	,onTagSet:function(tagset) {
-		this.setState({tagset:tagset});
-		this.setVisibility(0,true);
+	,onTagSets:function(tagsets) {
+		this.setState({tagsets:tagsets});
+		this.setVisibility(this.state.selected,true);
+	}
+	,onTagsetStatus:function(activetagset) {//enabling buttons
+		this.setState({updatepos:false});
 	}
 	,getInitialState:function(){
-		return {selected:0,tagset:[]};
+		var selected=parseInt(localStorage.getItem("selected.tab"))||0;
+		return {selected:selected,tagsets:[],displayonoff:false,updatepos:true};
 	}
 	,onSelect:function(n,perv) {
-		this.setState({selected:n});
-		this.setVisibility(n);
+		this.setState({selected:n,updatepos:false});
+		localStorage.setItem("selected.tab",n);
+		if (n!=this.state.selected) {
+			this.setVisibility(n);
+			this.setState({updatepos:true});
+		}
+	}
+	,updatePosition:function(children) {
+		var out={};
+		for (var i=0;i<children.length;i++) {
+			var spans=children[i].getElementsByTagName("span");
+			for (var j=0;j<spans.length;j++) {
+				var rect=spans[j].getBoundingClientRect();
+				var vpos=spans[j].dataset.vpos;
+				if (vpos){
+					out[parseInt(vpos)]=[rect.left,rect.top,rect.right,rect.bottom];	
+				}
+			}
+		}
+		actions.tokenPositionUpdated( out,viewID);
+	}
+	,componentDidUpdate:function() {
+		if (this.state.updatepos) this.updatePosition(this.refs.markupchoice.getDOMNode().children);
 	}
 	,componentDidMount:function() {
 		actions.loadTagsets();
 	}
 	,onSelectTag:function(n,prev){
-		console.log(n,prev)
+		actions.doTag(n);
 	}
-	,disableRandom:function(tagset) {
-		tagset.map(function(tag){
-			tag.disabledLabel=Math.random()>0.5;
-		});
+	,onCheckTag:function(n,checked){
+		var tagset=this.getTagset(this.state.selected);
+		tagset[n].checked=checked;
+		this.setVisibility(this.state.selected,true);
+		this.forceUpdate();
+	}
+	,getTagsetName:function() {
+		var tagset=this.state.tagsets[this.state.selected||0];
+		if (tagset) return tagset.name;
 	}
 	,setVisibility:function(selected,norefresh) {
 		var tagset=this.getTagset(selected);
-		actions.setTagsetName(this.state.tagset[selected].name);
-		actions.setVisibleTags(tagset.map(function(t){return t.name}),norefresh);
+		actions.setActiveTagset(this.state.tagsets[selected].name,tagset);
+
+		var visibletags=[];
+		tagset.map(function(t){if (t.checked) return visibletags.push(t.name)});
+		actions.setVisibleTags(visibletags,norefresh);
 	}
 	,getTagset:function(n) {
-		var selectedset=this.state.tagset[n];
+		var selectedset=this.state.tagsets[n];
 		return selectedset?selectedset.tagset:[];
 	}
+	,setDisplay:function(e) {
+		this.setState({displayonoff:e.target.checked,updatepos:true});
+	}
+	,convertToMarkup:function(arr) {
+		return arr.map(function(item){
+			var payload={tag:item[2]};
+			if (item[3]) payload.shadow=true;
+			return [item[0],item[1],payload];
+		});
+	}
+	,vposInItem:function(arr) {
+		var markups=this.convertToMarkup(arr);
+		actions.setVirtualMarkup(markups,viewID);
+	}
 	,render:function() {
-		//this.disableRandom(tagset);
 		return React.createElement("div", {className: "tagsetpanel"}, 
-			React.createElement(Choices, {data: this.state.tagset, onSelect: this.onSelect, type: "dropdown"}), 
-			React.createElement(Choices, {data: this.getTagset(this.state.selected), onSelect: this.onSelectTag, type: "checkbox", checked: true})
+			React.createElement(Choices, {data: this.state.tagsets, selected: this.state.selected, 
+			          onSelect: this.onSelect, type: "radio", labelfor: true}), 
+			React.createElement("label", {className: "pull-right"}, 
+				React.createElement("input", {type: "checkbox", checked: this.state.displayonoff, onChange: this.setDisplay}), "display"
+			), 
+			React.createElement(Choices, {ref: "markupchoice", data: this.getTagset(this.state.selected), 
+				onSelect: this.onSelectTag, onCheck: this.onCheckTag, type: this.state.displayonoff?"checkbox":"button", 
+				prefix: this.getTagsetName(), 
+				hotkey: true, checked: true, labelfor: true, linebreak: true, autovpos: true, vposInItem: this.vposInItem})
 		)
 	}
 });
 
 module.exports=TagsetTab;
-},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./store_tagset":"C:\\ksana2015\\visualmarkup\\src\\store_tagset.js","ksana2015-components":"C:\\ksana2015\\node_modules\\ksana2015-components\\index.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\testmarkups.js":[function(require,module,exports){
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./store_tagset":"C:\\ksana2015\\visualmarkup\\src\\store_tagset.js","./store_tagsets":"C:\\ksana2015\\visualmarkup\\src\\store_tagsets.js","ksana2015-components":"C:\\ksana2015\\node_modules\\ksana2015-components\\index.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\tagtypedef.js":[function(require,module,exports){
+var store_userinfo=require("./store_userinfo");
+
+var simple={
+	isValidSelection:function(grouped,viewselections) {
+		return (grouped.length>0);
+	}
+	,initPayload:function(tag,first,guid,sel,nsel,sels) {
+		return {tag:tag,source:store_userinfo.getUserName()};
+	}
+}
+var internal={
+	isValidSelection:function(grouped,viewselections) {
+		return (grouped.length==1 && grouped[0]>1);
+	}
+	,initPayload:function(tag,first,guid,sel,nsel,sels) {
+		if (first) {
+			return {id:guid,tag:tag,note:"",source:store_userinfo.getUserName()};
+		} else {
+			return {id:guid,tag:tag,shadow:true};
+		}		
+	}
+	,group:true
+}
+var intertext={ //only allow one to many
+	isValidSelection:function(grouped,viewselections) {
+		return (grouped.length==2 && (grouped[0]==1 || grouped[1]==1)) ;
+	}
+	,initPayload:function(tag,first,guid,sel,nsel,sels) {
+		if (first) {
+			return {id:guid,tag:tag,note:"",source:store_userinfo.getUserName()};
+		} else {
+			return {id:guid,tag:tag,shadow:true};
+		}		
+	}
+	,group:true
+}
+var punc={
+	isValidSelection:function(grouped,viewselections) {
+		return (grouped.length==0);
+		//2 viewid has selection, who is the leading?
+	}
+	,initPayload:function(tag,guid,sel,nsel,sels) {
+		return {tag:tag,source:store_userinfo.getUserName(),note:""};
+	}
+}
+
+var usernote={
+	isValidSelection:function(grouped,viewselections) {
+		return true;
+		//2 viewid has selection, who is the leading?
+	}
+	,initPayload:function(tag,guid,sel,nsel,sels) {
+		return {tag:tag,source:store_userinfo.getUserName(),note:""};
+	}
+}
+var defs={
+	"simple":simple
+	,"internal":internal
+	,"intertext":intertext
+	,"usernote":usernote
+	,"punc":punc
+	,"punc2":simple
+}
+
+module.exports=defs;
+},{"./store_userinfo":"C:\\ksana2015\\visualmarkup\\src\\store_userinfo.js"}],"C:\\ksana2015\\visualmarkup\\src\\testmarkups.js":[function(require,module,exports){
 var markups_sutra={
 	_id:"1_authorexpress",
 	markups:[
@@ -7512,7 +8823,106 @@ var markups_lecture={
 	]	
 }
 module.exports=[markups_sutra,markups_lecture]; 
-},{}],"C:\\ksana2015\\visualmarkup\\src\\textselection.js":[function(require,module,exports){
+},{}],"C:\\ksana2015\\visualmarkup\\src\\textnav.js":[function(require,module,exports){
+var Reflux=require("reflux");
+var store_markup=require("./store_markup");
+var stores=require("./store_text");
+var TextNav=React.createClass({displayName: "TextNav",
+	mixins:[Reflux.ListenerMixin]
+	,propTypes:{
+		viewid:React.PropTypes.string.isRequired
+		,title:React.PropTypes.string.isRequired
+		,store:React.PropTypes.object.isRequired
+		,actions:React.PropTypes.object.isRequired
+	}
+	,componentDidMount:function() {
+		this.listenTo(this.props.store,this.onData);
+	}
+	,checkSynable:function() {
+		var that=this;
+		setTimeout(function(){
+			var kepanid=that.props.store.getKepanId();
+			var others=store_markup.otherView(that.props.viewid);
+			var syncable=false;
+			for (var i=0;i<others.length;i++) {
+				if (kepanid!=stores[others[i]].getKepanId()) {
+					syncable=true;
+					break;
+				}
+			}
+
+			that.setState({syncable:syncable});
+		},500);
+	}
+	,onData:function(text,seg,db,opts) {
+		var opts=opts||{};
+		this.checkSynable();
+		this.setState({npara:seg||0});
+		if (this.state.sync && !opts.nosync) this.syncpara();
+	}
+	,getInitialState:function() {
+		return {npara:1,sync:true,syncable:false};
+	}
+	,clearSystemSelection:function() {
+		window.getSelection().empty();
+	}
+	,nextpara:function() {
+		this.props.actions.nextPara(this.props.viewid);
+		this.clearSystemSelection();
+	}
+	,prevpara:function() {
+		this.props.actions.prevPara(this.props.viewid);
+		this.clearSystemSelection();
+	}
+	,goPara:function(e) {
+		var n=parseInt(this.state.npara)||1;
+		if (e.key=="Enter")	{
+			this.props.actions.getTextBySeg(this.props.viewid,n);
+			this.clearSystemSelection();
+		}
+	}
+	,changed:function(e) {
+		//TODO , vpos can be prefixed with @, convert to npara and addHighlight
+		this.setState({npara:e.target.value});
+	}
+	,toggleSync:function(e) {
+		this.setState({sync:e.target.checked});
+	}
+	,syncpara:function() {
+		//if (!this.state.sync) return;
+		var kepanid=this.props.store.getKepanId();
+		var others=store_markup.otherView(this.props.viewid);
+		for (var i=0;i<others.length;i++) {
+			this.props.actions.getTextByKepanId(others[i],kepanid);
+		}
+		this.setState({syncable:false});
+	}
+	,render:function() {
+		return React.createElement("div", null, 
+				React.createElement("div", {className: "col-md-3"}, 
+					React.createElement("input", {checked: this.state.sync, className: "largecheckbox", type: "checkbox", onChange: this.toggleSync}), 
+					React.createElement("button", {onClick: this.syncpara, className: "btn btn-success"+(this.state.syncable?"":" disabled")}, "Sync")
+				), 
+				React.createElement("div", {className: "col-md-5"}, React.createElement("div", {className: "text-center textpanel-title"}, this.props.title)), 
+
+				React.createElement("div", {className: "col-md-4"}, 
+					React.createElement("div", {className: "input-group"}, 
+					React.createElement("span", {className: "input-group-btn"}, 
+						React.createElement("button", {onClick: this.prevpara, className: "btn btn-success"}, "Previous")
+					), 
+					React.createElement("input", {size: "2", className: "text form-control larger-input", 
+				   		onChange: this.changed, onKeyPress: this.goPara, value: this.state.npara}), 
+					React.createElement("span", {className: "input-group-btn"}, 
+						React.createElement("button", {onClick: this.nextpara, className: "btn btn-success"}, "Next")
+					)
+					)
+				)
+		    )
+	}
+});
+
+module.exports=TextNav;
+},{"./store_markup":"C:\\ksana2015\\visualmarkup\\src\\store_markup.js","./store_text":"C:\\ksana2015\\visualmarkup\\src\\store_text.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\textselection.js":[function(require,module,exports){
 var getRange=function() {
   var sel = getSelection();
   if (!sel.rangeCount) return;
@@ -7561,111 +8971,115 @@ module.exports=getselection;
 },{}],"C:\\ksana2015\\visualmarkup\\src\\trait.js":[function(require,module,exports){
 var Reflux=require("reflux");
 var store=require("./store_trait");
-var store_tagset=require("./store_tagset");
+var store_tagsets=require("./store_tagsets");
+var store_selection=require("./store_selection");
 var actions=require("./actions_markup");
+var actions_selection=require("./actions_selection");
+var MarkupGroup=require("./markupgroup");
 var trait_templates={
-	"partofspeech":require("./trait_partofspeech")
-	,"readerexpress":require("./trait_readerexpress")
-	,"authorexpress":require("./trait_authorexpress")
+	"simple":require("./trait_simple")
+	,"intertext":require("./trait_intertext")
+	,"internal":require("./trait_internal")
+	,"punc":require("./trait_punc")
 }
-var savecaption="Write To DB";
-var savedcaption="Markups Written.";
-var MarkupControls=React.createClass({displayName: "MarkupControls",
-	mixins:[Reflux.listenTo(require("./store_markup"),"onData")]
-	,getInitialState:function(){
-		return {savecaption:savecaption,dangerzone:false};
-	}
-	,reset:function() {
-		actions.clearAllMarkups();
-	}
-	,onData:function() {
+var MarkupSearch=require("./markupsearch");
+var SelectionList=require("./selectionlist");
 
-	}
-	,restoresavecapcation:function() {
-		this.setState({savecaption:savecaption});
-	}
-	,save:function() {
-		actions.saveMarkups(function(){
-			this.setState({savecaption:savedcaption});
-			setTimeout(this.restoresavecapcation,3000);
-		},this);
-	},
-	renderDanger:function() {
-		if (this.state.dangerzone) {
-			return React.createElement("button", {onClick: this.reset, className: "btn btn-danger"}, "Delete all markups")	
-		}	
-	}
-	,setDanger:function(e) {
-		this.setState({dangerzone:e.target.checked});
-	}
-	,render:function() {
-		return React.createElement("div", null, 
-			React.createElement("button", {onClick: this.save, className: "btn btn-success"}, this.state.savecaption), 
-			React.createElement("span", null, 
-    			React.createElement("label", null, 
-      			"danger", React.createElement("input", {type: "checkbox", onChange: this.setDanger})
-    			)
-  			), 
-			this.renderDanger()
-		)
-	}
-});
 var Trait=React.createClass({displayName: "Trait",
-	mixins:[Reflux.listenTo(store,"onData")],
+	mixins:[Reflux.listenTo(store,"onData"),Reflux.listenTo(store_selection,"onSelection")],
 	getInitialState:function(){
-		return {template:null}
+		return {template:null,modified:false,viewselections:{},markupselections:{}};
 	}
-	,onData:function(viewid,nmarkup,markup){
+	,commitChange:function() {
+		if (!this.state.modified || !this.state.markup) return;
+		var markup=this.state.markup;
+		markup[2]=this.refs.template.getValue();
+		actions.saveMarkup(this.state.viewid,this.state.nmarkup,markup);
+	}
+	,componentWillUnmount:function() {
+		this.commitChange();
+	}
+	,onData:function(viewid,markup,nmarkup,group,markupselections){
+		this.commitChange();
+
 		if (!markup) {
-			this.setState({template:null,markup:null});	
+			this.setState({template:null,markup:null,modified:false,group:group});
+			actions_selection.clearHighlights();
 			return;
 		}
-		var group=store_tagset.tagsetOfTag(markup[2].tag);
-		if (!group) {
-			return;
-		}
-		var template=trait_templates[group];
-		this.setState({template:template,markup:markup,viewid:viewid,nmarkup:nmarkup});
+		var type=store_tagsets.typeOfTag(markup[2].tag);
+		if (!type) return;
+		var template=trait_templates[type];
+		actions_selection.setHighlights(markupselections);
+		this.setState({markupselections:markupselections,template:template,markup:markup,viewid:viewid,nmarkup:nmarkup,modified:false});
 	}
 	,onChanged:function(){
 		this.setState({modified:true});
 	}
+	,onSelection:function(viewselections){
+		this.setState({viewselections:viewselections});
+	}
+	
 	,renderTemplate:function() {
-		if (!this.state.template) {
-			return React.createElement(MarkupControls, null)
-		} else {
+		if (this.state.template) {
 			var ele=React.createFactory(this.state.template);
-			return ele({ref:"template",onChanged:this.onChanged,trait:this.state.markup[2]});			
+			var template=ele({ref:"template",onChanged:this.onChanged,trait:this.state.markup[2],revert:this.revert});
+			this.revert=false;
+			return template;
+		}
+	}
+	,nextmarkup:function() {
+		//todo , skip shahow, next same tag
+		actions.nextMarkup({sametag:true});
+	}
+	,prevmarkup:function() {
+		actions.prevMarkup({sametag:true});
+	}
+	,renderControls:function(){
+		if (this.state.template) {
+			var disabled=!this.state.modified?" disabled":"";
+			var disabled_delete=!this.state.modified?"":" disabled";
+			return React.createElement("div", null, 
+					React.createElement("div", {className: "pull-right"}, 
+					React.createElement("button", {onClick: this.prevmarkup, title: "Prev Markup", className: "btn btn-info"}, "Prev"), 
+					React.createElement("button", {onClick: this.nextmarkup, title: "Next Markup", className: "btn btn-info"}, "Next")
+					), 
+					React.createElement("div", {className: ""}, 
+					React.createElement("button", {onClick: this.revertmarkup, title: "Discard changes", className: "btn btn-warning"+disabled}, "Revert"), 
+					React.createElement("button", {onClick: this.deletemarkup, title: "Delete this markup", className: "btn btn-danger"+disabled_delete}, "Delete")
+					), 
+
+
+					React.createElement(MarkupSearch, null), 
+					React.createElement(SelectionList, {viewselections: this.state.markupselections})
+				   )
 		}
 	}
 	,deletemarkup:function() {
-		actions.deleteMarkup(this.state.viewid,this.state.nmarkup);
+		actions.deleteMarkup(this.state.viewid,this.state.markup);
+		actions_selection.setSelections(this.state.markupselections);
 	}
-	,savemarkup:function(e) {
-		var markup=this.state.markup;
-		markup[2]=this.refs.template.getValue();
-		actions.saveMarkups(this.state.viewid,this.state.nmarkup,markup);
-		this.setState({modified:false,markup:markup});
+	,revertmarkup:function() {
+		this.revert=true;
+		this.setState({modified:false});
 	}
-	,renderControls:function() {
-		if (!this.state.template) return;
-		var disabled=!this.state.modified?" disabled":"";
-		var disabled_delete=!this.state.modified?"":" disabled";
-		return React.createElement("div", null, 
-				React.createElement("button", {onClick: this.deletemarkup, className: "btn btn-danger"+disabled_delete}, "Delete"), 
-				React.createElement("button", {onClick: this.savemarkup, className: "btn btn-success"+disabled}, "Save")
-			   )
+	,renderSelection:function() {
+		if (!this.state.template) {
+			return React.createElement(SelectionList, {showtext: true, viewselections: this.state.viewselections})
+		}
 	}
 	,render:function() {
 		return React.createElement("div", {className: "traitpanel"}, 
 					this.renderTemplate(), 
-					this.renderControls()
+					this.renderControls(), 
+					React.createElement("br", null), 
+					this.renderSelection()
 			)
 	}
 });
 module.exports=Trait;
 
-},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./store_markup":"C:\\ksana2015\\visualmarkup\\src\\store_markup.js","./store_tagset":"C:\\ksana2015\\visualmarkup\\src\\store_tagset.js","./store_trait":"C:\\ksana2015\\visualmarkup\\src\\store_trait.js","./trait_authorexpress":"C:\\ksana2015\\visualmarkup\\src\\trait_authorexpress.js","./trait_partofspeech":"C:\\ksana2015\\visualmarkup\\src\\trait_partofspeech.js","./trait_readerexpress":"C:\\ksana2015\\visualmarkup\\src\\trait_readerexpress.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\trait_authorexpress.js":[function(require,module,exports){
+},{"./actions_markup":"C:\\ksana2015\\visualmarkup\\src\\actions_markup.js","./actions_selection":"C:\\ksana2015\\visualmarkup\\src\\actions_selection.js","./markupgroup":"C:\\ksana2015\\visualmarkup\\src\\markupgroup.js","./markupsearch":"C:\\ksana2015\\visualmarkup\\src\\markupsearch.js","./selectionlist":"C:\\ksana2015\\visualmarkup\\src\\selectionlist.js","./store_selection":"C:\\ksana2015\\visualmarkup\\src\\store_selection.js","./store_tagsets":"C:\\ksana2015\\visualmarkup\\src\\store_tagsets.js","./store_trait":"C:\\ksana2015\\visualmarkup\\src\\store_trait.js","./trait_internal":"C:\\ksana2015\\visualmarkup\\src\\trait_internal.js","./trait_intertext":"C:\\ksana2015\\visualmarkup\\src\\trait_intertext.js","./trait_punc":"C:\\ksana2015\\visualmarkup\\src\\trait_punc.js","./trait_simple":"C:\\ksana2015\\visualmarkup\\src\\trait_simple.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\trait_internal.js":[function(require,module,exports){
 var Trait_authorexpress=React.createClass({displayName: "Trait_authorexpress",
 	mixins:[require("./trait_mixin")]
 	,render:function() {
@@ -7681,72 +9095,7 @@ var Trait_authorexpress=React.createClass({displayName: "Trait_authorexpress",
 });
 
 module.exports=Trait_authorexpress;
-},{"./trait_mixin":"C:\\ksana2015\\visualmarkup\\src\\trait_mixin.js"}],"C:\\ksana2015\\visualmarkup\\src\\trait_mixin.js":[function(require,module,exports){
-var trait_mixin={
-	propsType:{
-		trait:React.PropTypes.object.isRequired
-		,onChanged:React.PropTypes.func
-	}
-	,componentWillReceiveProps:function(nextprops) {
-		if (nextprops.trait!=this.props.trait) this.copyValue(nextprops);
-	}
-	,componentDidMount:function() {
-		this.copyValue(this.props);
-	}
-	,copyValue:function(props) {
-		var trait=props.trait;
-		for (var i in trait) {
-			if (this.refs[i]) {
-				this.refs[i].getDOMNode().value=trait[i];
-			}
-		}
-	}
-	,getValue:function() {
-		var out={};
-		var trait=this.props.trait;
-		for (var i in this.props.trait) {
-			if (this.refs[i]) {
-				out[i]=this.refs[i].getDOMNode().value;
-			}
-		}
-		return out;
-	}
-	,change:function(e){
-		if (this.props.onChanged) this.props.onChanged(e.target.value);
-	}
-}
-module.exports=trait_mixin;
-},{}],"C:\\ksana2015\\visualmarkup\\src\\trait_partofspeech.js":[function(require,module,exports){
-var Trait_partofspeech=React.createClass({displayName: "Trait_partofspeech",
-	mixins:[require("./trait_mixin")]
-	,render:function() {
-		return React.createElement("div", null, 
-			React.createElement("div", {className: "form-group"}, 
-				React.createElement("div", {className: "col-md-6"}, 
-					React.createElement("div", {className: "input-group"}, 
-		  				React.createElement("span", {className: "input-group-addon"}, "標記"), 
-		  				React.createElement("input", {ref: "tag", type: "text", readOnly: true, className: "form-control"})
-					)
-				), 
-
-				React.createElement("div", {className: "col-md-6"}, 
-					React.createElement("div", {className: "input-group"}, 
-		  				React.createElement("span", {className: "input-group-addon"}, "來源"), 
-		  				React.createElement("input", {ref: "source", type: "text", readOnly: true, className: "form-control"})
-					)
-				), 
-
-				React.createElement("div", {className: "input-group"}, 
-	  				React.createElement("span", {className: "input-group-addon"}, "解釋"), 
-	  					React.createElement("input", {ref: "explain", onInput: this.change, type: "text", className: "form-control", placeholder: "解釋"})
-				)
-			)
-			)
-	}
-});
-
-module.exports=Trait_partofspeech;
-},{"./trait_mixin":"C:\\ksana2015\\visualmarkup\\src\\trait_mixin.js"}],"C:\\ksana2015\\visualmarkup\\src\\trait_readerexpress.js":[function(require,module,exports){
+},{"./trait_mixin":"C:\\ksana2015\\visualmarkup\\src\\trait_mixin.js"}],"C:\\ksana2015\\visualmarkup\\src\\trait_intertext.js":[function(require,module,exports){
 var Trait_readerexpress=React.createClass({displayName: "Trait_readerexpress",
 	mixins:[require("./trait_mixin")]
 	,render:function() {
@@ -7757,7 +9106,7 @@ var Trait_readerexpress=React.createClass({displayName: "Trait_readerexpress",
 	  					React.createElement("input", {ref: "note", onInput: this.change, type: "text", className: "form-control", placeholder: "解釋"})
 				), 
 				React.createElement("div", {className: "input-group"}, 
-	  				React.createElement("span", {className: "input-group-addon"}, "讀者"), 
+	  				React.createElement("span", {className: "input-group-addon"}, "創作者"), 
 	  				React.createElement("input", {ref: "owner", type: "text", readOnly: true, className: "form-control"})
 				)
 			)
@@ -7766,6 +9115,107 @@ var Trait_readerexpress=React.createClass({displayName: "Trait_readerexpress",
 });
 
 module.exports=Trait_readerexpress;
+},{"./trait_mixin":"C:\\ksana2015\\visualmarkup\\src\\trait_mixin.js"}],"C:\\ksana2015\\visualmarkup\\src\\trait_mixin.js":[function(require,module,exports){
+var Reflux=require("reflux");
+var store=require("./store_userinfo");
+
+var trait_mixin={
+	onUser:function(userinfo) {
+		console.log("trait user name",userinfo.name)
+		this.setState({username:userinfo.name});
+	}
+	,propsType:{
+		trait:React.PropTypes.object.isRequired
+		,onChanged:React.PropTypes.func
+	}
+	,getInitialState:function() {
+		return ({username:store.getUserName() })
+	}
+	,componentWillReceiveProps:function(nextprops) {
+		if (nextprops.trait!=this.props.trait || nextprops.revert) this.copyValue(nextprops);
+	}
+	,componentDidMount:function() {
+		this.unsubscribe=store.listen(this.onUser);
+		this.copyValue(this.props);
+	}
+	,componentWillUnmount:function(){
+		this.unsubscribe();
+	}
+	,copyValue:function(props) {
+		var trait=props.trait;
+		for (var i in this.refs) {
+			this.refs[i].getDOMNode().value=trait[i] ||"";
+		}
+	}
+	,getValue:function() {
+		var out={};
+		var trait=this.props.trait;
+		for (var i in this.refs) {
+			out[i]=this.refs[i].getDOMNode().value;
+		}
+		for (var i in trait) { //copy old value
+			if (!out[i]) out[i]=trait[i];
+		}
+		return out;
+	}
+	,change:function(e){
+		if (this.props.onChanged) this.props.onChanged(e.target.value);
+		if (this.onChanged) this.onChanged(e.target.value);
+	}
+}
+module.exports=trait_mixin;
+},{"./store_userinfo":"C:\\ksana2015\\visualmarkup\\src\\store_userinfo.js","reflux":"C:\\ksana2015\\node_modules\\reflux\\src\\index.js"}],"C:\\ksana2015\\visualmarkup\\src\\trait_punc.js":[function(require,module,exports){
+var Trait_punc=React.createClass({displayName: "Trait_punc",
+	mixins:[require("./trait_mixin")]
+	,render:function() {
+		return React.createElement("div", null, 
+			React.createElement("div", {className: "form-group"}, 
+				React.createElement("div", {className: "input-group"}, 
+	  				React.createElement("span", {className: "input-group-addon"}, "注記"), 
+	  					React.createElement("input", {ref: "note", onInput: this.change, type: "text", className: "form-control", placeholder: "解釋"})
+				), 
+				React.createElement("div", {className: "input-group"}, 
+	  				React.createElement("span", {className: "input-group-addon"}, "創作者"), 
+	  				React.createElement("input", {ref: "owner", type: "text", readOnly: true, className: "form-control"})
+				)
+			)
+			)
+	}
+});
+
+module.exports=Trait_punc;
+},{"./trait_mixin":"C:\\ksana2015\\visualmarkup\\src\\trait_mixin.js"}],"C:\\ksana2015\\visualmarkup\\src\\trait_simple.js":[function(require,module,exports){
+var Trait_partofspeech=React.createClass({displayName: "Trait_partofspeech",
+	mixins:[require("./trait_mixin")]
+
+	,onChanged:function() {
+		this.refs.source.getDOMNode().value=this.state.username;
+	}
+	,render:function() {
+		return React.createElement("div", null, 
+			React.createElement("div", {className: "form-group"}, 
+				React.createElement("div", {className: "input-group"}, 
+	  				React.createElement("span", {className: "input-group-addon"}, "標記"), 
+	  				React.createElement("input", {ref: "tag", type: "text", readOnly: true, className: "form-control"})
+				), 
+
+				React.createElement("div", {className: "input-group"}, 
+	  				React.createElement("span", {className: "input-group-addon"}, "來源"), 
+	  				React.createElement("input", {ref: "source", type: "text", readOnly: true, className: "form-control"})
+				), 
+
+				React.createElement("div", {className: "input-group"}, 
+	  				React.createElement("span", {className: "input-group-addon"}, "解釋"), 
+	  					React.createElement("textarea", {ref: "explain", onInput: this.change, cols: "10", className: "form-control", placeholder: "解釋"})
+				)
+			)
+			)
+	}
+});
+/*
+  dropdown user created defination
+*/ 
+module.exports=Trait_partofspeech;
 },{"./trait_mixin":"C:\\ksana2015\\visualmarkup\\src\\trait_mixin.js"}]},{},["C:\\ksana2015\\visualmarkup\\index.js"])
 
 
